@@ -11,4 +11,13 @@ namespace trackingController{
 
 	}
 
+	void trackingController::registerPub(){
+		// command publisher
+		this->cmdPub_ = this->nh_.advertise<mavros_msgs::AttitudeTarget>("/mavros/setpoint_raw/attitude", 1);
+	}
+
+
+	void trackingController::registerCallback(){
+
+	}
 }
