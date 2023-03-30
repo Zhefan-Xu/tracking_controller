@@ -4,7 +4,6 @@
 	tracking controller for px4-based quadcopter
 */
 #include <tracking_controller/trackingController.h>
-#include <mavros_msgs/AttitudeTarget.h>
 
 int main(int argc, char** argv){
 	ros::init(argc, argv, "tracking_controller_node");
