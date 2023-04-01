@@ -43,6 +43,10 @@ namespace trackingController{
 		this->publishCommand(cmd);
 	}
 
+	Eigen::Vector3d trackingController::computeDesiredAcc(const Eigen::Vector3d& targetPos, const Eigen::Vector3d& targetVel, const Eigen::Vector3d& targetAcc){
+		
+	}
+
 	void trackingController::publishCommand(const Eigen::Vector4d& cmd){
 		mavros_msgs::AttitudeTarget cmdMsg;
 		cmdMsg.header.stamp = ros::Time::now();
