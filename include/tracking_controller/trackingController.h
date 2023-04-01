@@ -10,8 +10,9 @@
 #include <nav_msgs/Odometry.h>
 #include <mavros_msgs/AttitudeTarget.h>
 #include <tracking_controller/Target.h>
+#include <tracking_controller/utils.h>
 
-namespace trackingController{
+namespace controller{
 	class trackingController{
 		private:
 			ros::NodeHandle nh_;
@@ -21,9 +22,12 @@ namespace trackingController{
 			ros::Timer cmdTimer_; // command timer
 
 			// parameters
-			Eigen::Vector3d gravity_ {Eigen::Vector3d(0.0, 0.0, -9.8)}
+			double pPos_;
+			double pVel_;
 
 			// controller data
+			bool odomReceived_ = false;
+			bool targetReceived_ = false;
 			nav_msgs::Odometry odom_;
 			tracking_controller::Target target_;
 
@@ -38,8 +42,9 @@ namespace trackingController{
 			void targetCB(const tracking_controller::TargetConstPtr& target);
 			void cmdCB(const ros::TimerEvent&);
 
-			Eigen::Vector3d computeDesiredAcc(const Eigen::Vector3d& targetPos, const Eigen::Vector3d& targetVel, const Eigen::Vector3d& targetAcc);
 			void publishCommand(const Eigen::Vector4d &cmd);
+			Eigen::Vector4d computeAttitudeRef();
+
 	};
 }
 
