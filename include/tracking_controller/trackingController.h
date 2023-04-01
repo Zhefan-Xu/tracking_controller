@@ -24,6 +24,7 @@ namespace controller{
 			// parameters
 			double pPos_;
 			double pVel_;
+			double attitudeControlTau_;
 
 			// controller data
 			bool odomReceived_ = false;
@@ -43,7 +44,9 @@ namespace controller{
 			void cmdCB(const ros::TimerEvent&);
 
 			void publishCommand(const Eigen::Vector4d &cmd);
-			Eigen::Vector4d computeAttitudeRef();
+			void computeAttitudeAndAccRef(Eigen::Vector4d& attitudeRefQuat, Eigen::Vector3d& accRef);
+			void computeBodyRate(const Eigen::Vector4d& attitudeRefQuat, const Eigen::Vector3d& accRef, Eigen::Vector4d& cmd);
+
 
 	};
 }

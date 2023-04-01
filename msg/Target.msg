@@ -10,3 +10,4 @@ geometry_msgs/Vector3 velocity
 geometry_msgs/Vector3 acceleration
 geometry_msgs/Vector3 jerk
 geometry_msgs/Vector3 snap
+float32 yaw

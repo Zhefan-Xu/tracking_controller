@@ -45,12 +45,14 @@ namespace controller{
 		Eigen::Vector4d cmd;
 
 		// 1. Find target reference attitude from the desired acceleration
-		Eigen::Vector4d attitudeRefQuat = this->computeAttitudeRef();
-
+		Eigen::Vector4d attitudeRefQuat;
+		Eigen::Vector3d accRef;
+		this->computeAttitudeAndAccRef(attitudeRefQuat, accRef);
 
 		// 2. Compute the body rate from the reference attitude
+		this->computeBodyRate(attitudeRefQuat, accRef, cmd);
 
-
+		// 3. publish body rate as control input
 		this->publishCommand(cmd);
 	}
 
@@ -69,7 +71,7 @@ namespace controller{
 	}
 
 
-	Eigen::Vector4d trackingController::computeAttitudeRef(){
+	void trackingController::computeAttitudeAndAccRef(Eigen::Vector4d& attitudeRefQuat, Eigen::Vector3d& accRef){
 		// Find the reference acceleration for motors, then convert the acceleration into attitude
 
 		/* There are four components of reference acceleration:
@@ -98,22 +100,37 @@ namespace controller{
 		Eigen::Vector3d gravity {0.0, 0.0, -9.8};
 
 		// Final reference acceleration for motors
-		Eigen::Vector3d accRef = accTarget + accFeedback - accAirdrag - gravity;
+		accRef = accTarget + accFeedback - accAirdrag - gravity;
 
 
 		// Convert the reference acceleration into the reference attitude
-		double currYaw = controller::rpy_from_quaternion(this->odom_.pose.pose.orientation);
-		Eigen::Vector3d currDirection (cos(currYaw), sin(currYaw), 0.0);
+		double yaw = this->target_.yaw;
+		Eigen::Vector3d currDirection (cos(yaw), sin(yaw), 0.0);
 		Eigen::Vector3d zDirection = accRef/accRef.norm();
 		Eigen::Vector3d yDirection = zDirection.cross(currDirection)/(zDirection.cross(currDirection)).norm();
 		Eigen::Vector3d xDirection = zDirection.cross(yDirection)/(zDirection.cross(yDirection)).norm();
 
 		// with three axis vector, we can construct the rotation matrix
-		Eigen::Matrix3d attitudeRot;
-		attitudeRot << xDirection(0), yDirection(0), zDirection(0),
+		Eigen::Matrix3d attitudeRefRot;
+		attitudeRefRot << xDirection(0), yDirection(0), zDirection(0),
 					   xDirection(1), yDirection(1), zDirection(1),
 					   xDirection(2), yDirection(2), zDirection(2);
-		Eigen::Vector4d attitudeQuat = controller::rot2Quaternion(attitudeRot);
-		return attitudeQuat;
+		attitudeRefQuat = controller::rot2Quaternion(attitudeRefRot);
+	}
+
+	void trackingController::computeBodyRate(const Eigen::Vector4d& attitudeRefQuat, const Eigen::Vector3d& accRef, Eigen::Vector4d& cmd){
+		// body rate
+		Eigen::Vector4d currAttitudeQuat (this->odom_.pose.pose.orientation.w, this->odom_.pose.pose.orientation.x, this->odom_.pose.pose.orientation.y, this->odom_.pose.pose.orientation.z);
+		Eigen::Vector4d inverseQuat(1.0, -1.0, -1.0, -1.0);
+		Eigen::Vector4d currAttitudeQuatInv = inverseQuat.asDiagonal() * currAttitudeQuat;
+		Eigen::Vector4d attitudeErrorQuat = quatMultiplication(currAttitudeQuatInv, attitudeRefQuat);
+		cmd(0) = (2.0 / this->attitudeControlTau_) * std::copysign(1.0, attitudeErrorQuat(0)) * attitudeErrorQuat(1);
+		cmd(1) = (2.0 / this->attitudeControlTau_) * std::copysign(1.0, attitudeErrorQuat(0)) * attitudeErrorQuat(2);
+		cmd(2) = (2.0 / this->attitudeControlTau_) * std::copysign(1.0, attitudeErrorQuat(0)) * attitudeErrorQuat(3);
+		
+		// thrust
+		Eigen::Matrix3d currAttitudeRot = quat2RotMatrix(currAttitudeQuat);
+		Eigen::Vector3d zDirection = currAttitudeRot.col(2); // body z axis 
+		cmd(3) = accRef.dot(zDirection);
 	}
 }
