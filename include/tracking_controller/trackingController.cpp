@@ -135,7 +135,7 @@ namespace controller{
 
 
 		// Convert the reference acceleration into the reference attitude
-		double yaw = this->target_.yaw;
+		double yaw = this->target_.yaw;  // todo: the original implementation uses the current yaw or velocity yaw
 		Eigen::Vector3d currDirection (cos(yaw), sin(yaw), 0.0);
 		Eigen::Vector3d zDirection = accRef/accRef.norm();
 		Eigen::Vector3d yDirection = zDirection.cross(currDirection)/(zDirection.cross(currDirection)).norm();
@@ -144,8 +144,8 @@ namespace controller{
 		// with three axis vector, we can construct the rotation matrix
 		Eigen::Matrix3d attitudeRefRot;
 		attitudeRefRot << xDirection(0), yDirection(0), zDirection(0),
-					   xDirection(1), yDirection(1), zDirection(1),
-					   xDirection(2), yDirection(2), zDirection(2);
+					   	  xDirection(1), yDirection(1), zDirection(1),
+					      xDirection(2), yDirection(2), zDirection(2);
 		attitudeRefQuat = controller::rot2Quaternion(attitudeRefRot);
 	}
 
