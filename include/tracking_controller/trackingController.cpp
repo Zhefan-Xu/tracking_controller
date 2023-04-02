@@ -8,8 +8,39 @@
 
 namespace controller{
 	trackingController::trackingController(const ros::NodeHandle& nh) : nh_(nh){
+		this->initParam();
 		this->registerPub();
 		this->registerCallback();
+	}
+
+
+	void trackingController::initParam(){
+		// P for Position
+		if (not this->nh_.getParam("controller/position_p", this->pPos_)){
+			this->pPos_ = 5.0;
+			cout << "[trackingController]: No position p param. Use default: 5.0." << endl;
+		}
+		else{
+			cout << "[trackingController]: Position p is set to: " << this->pPos_  << endl;
+		}	
+
+		// P for Velocity
+		if (not this->nh_.getParam("controller/velocity_p", this->pVel_)){
+			this->pVel_ = 5.0;
+			cout << "[trackingController]: No velocity p param. Use default: 5.0." << endl;
+		}
+		else{
+			cout << "[trackingController]: Velocity p is set to: " << this->pVel_  << endl;
+		}
+
+		// Attitude control tau (attitude controller by body rate)
+		if (not this->nh_.getParam("controller/attitude_control_tau", this->attitudeControlTau_)){
+			this->attitudeControlTau_ = 0.3;
+			cout << "[trackingController]: No attitude control tau param. Use default: 0.3." << endl;
+		}
+		else{
+			cout << "[trackingController]: Attitude control tau is set to: " << this->attitudeControlTau_  << endl;
+		}
 	}
 
 	void trackingController::registerPub(){

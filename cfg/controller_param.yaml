@@ -1,0 +1,3 @@
+position_p: 5.0
+velocity_p: 5.0
+attitude_control_tau: 0.3

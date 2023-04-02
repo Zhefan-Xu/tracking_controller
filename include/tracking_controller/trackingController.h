@@ -12,6 +12,7 @@
 #include <tracking_controller/Target.h>
 #include <tracking_controller/utils.h>
 
+using std::cout; using std::endl;
 namespace controller{
 	class trackingController{
 		private:
@@ -35,6 +36,7 @@ namespace controller{
 
 		public:
 			trackingController(const ros::NodeHandle& nh);
+			void initParam();
 			void registerPub();
 			void registerCallback();
 

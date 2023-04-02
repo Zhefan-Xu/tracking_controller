@@ -1,0 +1,4 @@
+<launch>
+	<rosparam file="$(find tracking_controller)/cfg/controller_param.yaml" ns="controller"/>
+	<node pkg="tracking_controller" type="tracking_controller_node" name="tracking_controller_node" output="screen" />
+</launch>
