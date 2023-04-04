@@ -23,9 +23,10 @@ namespace controller{
 			ros::Timer cmdTimer_; // command timer
 
 			// parameters
-			double pPos_;
-			double pVel_;
+			Eigen::Vector3d pPos_;
+			Eigen::Vector3d pVel_;
 			double attitudeControlTau_;
+			double hoverThrottle_;
 
 			// controller data
 			bool odomReceived_ = false;

@@ -16,21 +16,33 @@ namespace controller{
 
 	void trackingController::initParam(){
 		// P for Position
-		if (not this->nh_.getParam("controller/position_p", this->pPos_)){
-			this->pPos_ = 5.0;
-			cout << "[trackingController]: No position p param. Use default: 5.0." << endl;
+		std::vector<double> pPosTemp;
+		if (not this->nh_.getParam("controller/position_p", pPosTemp)){
+			this->pPos_(0) = 1.0;
+			this->pPos_(1) = 1.0;
+			this->pPos_(2) = 1.0;
+			cout << "[trackingController]: No position p param. Use default: [1.0, 1.0, 1.0]." << endl;
 		}
 		else{
-			cout << "[trackingController]: Position p is set to: " << this->pPos_  << endl;
+			this->pPos_(0) = pPosTemp[0];
+			this->pPos_(1) = pPosTemp[1];
+			this->pPos_(2) = pPosTemp[2];			
+			cout << "[trackingController]: Position p is set to: " << "[" << this->pPos_(0) << ", " << this->pPos_(1) << ", " << this->pPos_(2) << "]." << endl;
 		}	
 
 		// P for Velocity
-		if (not this->nh_.getParam("controller/velocity_p", this->pVel_)){
-			this->pVel_ = 5.0;
-			cout << "[trackingController]: No velocity p param. Use default: 5.0." << endl;
+		std::vector<double> pVelTemp;
+		if (not this->nh_.getParam("controller/velocity_p", pVelTemp)){
+			this->pVel_(0) = 1.0;
+			this->pVel_(1) = 1.0;
+			this->pVel_(2) = 1.0;			
+			cout << "[trackingController]: No velocity p param. Use default: [1.0, 1.0, 1.0]." << endl;
 		}
 		else{
-			cout << "[trackingController]: Velocity p is set to: " << this->pVel_  << endl;
+			this->pVel_(0) = pVelTemp[0];
+			this->pVel_(1) = pVelTemp[1];
+			this->pVel_(2) = pVelTemp[2];	
+			cout << "[trackingController]: Velocity p is set to:" << "[" << this->pVel_(0) << ", " << this->pVel_(1) << ", " << this->pVel_(2) << "]." << endl; 
 		}
 
 		// Attitude control tau (attitude controller by body rate)
@@ -40,6 +52,15 @@ namespace controller{
 		}
 		else{
 			cout << "[trackingController]: Attitude control tau is set to: " << this->attitudeControlTau_  << endl;
+		}
+
+		// Estimated Maximum acceleration
+		if (not this->nh_.getParam("controller/hover_throttle", this->hoverThrottle_)){
+			this->hoverThrottle_ = 0.3;
+			cout << "[trackingController]: No hover throttle param. Use default: 0.3." << endl;
+		}
+		else{
+			cout << "[trackingController]: However throttle is set to: " << this->hoverThrottle_  << endl;
 		}
 	}
 
@@ -121,7 +142,7 @@ namespace controller{
 		Eigen::Vector3d currVel (this->odom_.twist.twist.linear.x, this->odom_.twist.twist.linear.y, this->odom_.twist.twist.linear.z);
 		Eigen::Vector3d targetPos (this->target_.position.x, this->target_.position.y, this->target_.position.z);
 		Eigen::Vector3d targetVel (this->target_.velocity.x, this->target_.velocity.y, this->target_.velocity.z);
-		Eigen::Vector3d accFeedback = this->pPos_ * (targetPos - currPos) + this->pVel_ * (targetVel - currVel);
+		Eigen::Vector3d accFeedback = this->pPos_.asDiagonal() * (targetPos - currPos) + this->pVel_.asDiagonal() * (targetVel - currVel);
 
 
 		// 3. air drag
@@ -136,10 +157,10 @@ namespace controller{
 
 		// Convert the reference acceleration into the reference attitude
 		double yaw = this->target_.yaw;  // todo: the original implementation uses the current yaw or velocity yaw
-		Eigen::Vector3d currDirection (cos(yaw), sin(yaw), 0.0);
+		Eigen::Vector3d direction (cos(yaw), sin(yaw), 0.0);
 		Eigen::Vector3d zDirection = accRef/accRef.norm();
-		Eigen::Vector3d yDirection = zDirection.cross(currDirection)/(zDirection.cross(currDirection)).norm();
-		Eigen::Vector3d xDirection = zDirection.cross(yDirection)/(zDirection.cross(yDirection)).norm();
+		Eigen::Vector3d yDirection = zDirection.cross(direction)/(zDirection.cross(direction)).norm();
+		Eigen::Vector3d xDirection = yDirection.cross(zDirection)/(yDirection.cross(zDirection)).norm();
 
 		// with three axis vector, we can construct the rotation matrix
 		Eigen::Matrix3d attitudeRefRot;
@@ -147,6 +168,12 @@ namespace controller{
 					   	  xDirection(1), yDirection(1), zDirection(1),
 					      xDirection(2), yDirection(2), zDirection(2);
 		attitudeRefQuat = controller::rot2Quaternion(attitudeRefRot);
+
+
+		Eigen::Vector3d positionError = targetPos - currPos;
+		cout << "Position Error: " << positionError(0) << " " << positionError(1) << " " << positionError(2) << endl;
+		cout << "Feedback acceleration: " << accFeedback(0) << " " << accFeedback(1) << " " << accFeedback(2) << endl;
+		cout << "Desired Acceleration: " << accRef(0) << " " << accRef(1) << " " << accRef(2) << endl;
 	}
 
 	void trackingController::computeBodyRate(const Eigen::Vector4d& attitudeRefQuat, const Eigen::Vector3d& accRef, Eigen::Vector4d& cmd){
@@ -162,6 +189,10 @@ namespace controller{
 		// thrust
 		Eigen::Matrix3d currAttitudeRot = quat2RotMatrix(currAttitudeQuat);
 		Eigen::Vector3d zDirection = currAttitudeRot.col(2); // body z axis 
-		cmd(3) = accRef.dot(zDirection);
+		double thrust = accRef.dot(zDirection); // thrust in acceleration
+		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust/(9.8 * 1.0/this->hoverThrottle_))); // percent + offset
+		cmd(3) = thrustPercent;
+		cout << "body rate: " << cmd(0) << " " << cmd(1) << " " << cmd(2) << endl;
+		cout << "thrust percent: " << thrustPercent << endl;
 	}
 }
