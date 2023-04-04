@@ -171,7 +171,9 @@ namespace controller{
 
 
 		Eigen::Vector3d positionError = targetPos - currPos;
+		Eigen::Vector3d velovityError = targetVel - currVel;
 		cout << "Position Error: " << positionError(0) << " " << positionError(1) << " " << positionError(2) << endl;
+		cout << "Velocity Error: " << velovityError(0) << " " << velovityError(1) << " " << velovityError(2) << endl;
 		cout << "Feedback acceleration: " << accFeedback(0) << " " << accFeedback(1) << " " << accFeedback(2) << endl;
 		cout << "Desired Acceleration: " << accRef(0) << " " << accRef(1) << " " << accRef(2) << endl;
 	}
