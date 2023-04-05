@@ -197,7 +197,7 @@ namespace controller{
 		Eigen::Matrix3d currAttitudeRot = quat2RotMatrix(currAttitudeQuat);
 		Eigen::Vector3d zDirection = currAttitudeRot.col(2); // body z axis 
 		double thrust = accRef.dot(zDirection); // thrust in acceleration
-		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust/(9.8 * 1.0/this->hoverThrottle_) + 0.05)); // percent + offset
+		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust/(9.8 * 1.0/this->hoverThrottle_))); // percent
 		cmd(3) = thrustPercent;
 		cout << "body rate: " << cmd(0) << " " << cmd(1) << " " << cmd(2) << endl;
 		cout << "thrust percent: " << thrustPercent << endl;
