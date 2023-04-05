@@ -139,7 +139,10 @@ namespace controller{
 
 		// 2. position & velocity feedback control
 		Eigen::Vector3d currPos (this->odom_.pose.pose.position.x, this->odom_.pose.pose.position.y, this->odom_.pose.pose.position.z);
-		Eigen::Vector3d currVel (this->odom_.twist.twist.linear.x, this->odom_.twist.twist.linear.y, this->odom_.twist.twist.linear.z);
+		Eigen::Vector3d currVelBody (this->odom_.twist.twist.linear.x, this->odom_.twist.twist.linear.y, this->odom_.twist.twist.linear.z);
+		Eigen::Vector4d currQuat (this->odom_.pose.pose.orientation.w, this->odom_.pose.pose.orientation.x, this->odom_.pose.pose.orientation.y, this->odom_.pose.pose.orientation.z);
+		Eigen::Matrix3d currRot = controller::quat2RotMatrix(currQuat);
+		Eigen::Vector3d currVel = currRot * currVelBody;
 		Eigen::Vector3d targetPos (this->target_.position.x, this->target_.position.y, this->target_.position.z);
 		Eigen::Vector3d targetVel (this->target_.velocity.x, this->target_.velocity.y, this->target_.velocity.z);
 		Eigen::Vector3d accFeedback = this->pPos_.asDiagonal() * (targetPos - currPos) + this->pVel_.asDiagonal() * (targetVel - currVel);
@@ -173,6 +176,8 @@ namespace controller{
 		Eigen::Vector3d positionError = targetPos - currPos;
 		Eigen::Vector3d velovityError = targetVel - currVel;
 		cout << "Position Error: " << positionError(0) << " " << positionError(1) << " " << positionError(2) << endl;
+		cout << "Target Velocity: " << targetVel(0) << " " << targetVel(1) << " " << targetVel(2) << endl;
+		cout << "Current Velocity: " << currVel(0) << " " << currVel(1) << " " << currVel(2) << endl; 
 		cout << "Velocity Error: " << velovityError(0) << " " << velovityError(1) << " " << velovityError(2) << endl;
 		cout << "Feedback acceleration: " << accFeedback(0) << " " << accFeedback(1) << " " << accFeedback(2) << endl;
 		cout << "Desired Acceleration: " << accRef(0) << " " << accRef(1) << " " << accRef(2) << endl;
@@ -192,7 +197,7 @@ namespace controller{
 		Eigen::Matrix3d currAttitudeRot = quat2RotMatrix(currAttitudeQuat);
 		Eigen::Vector3d zDirection = currAttitudeRot.col(2); // body z axis 
 		double thrust = accRef.dot(zDirection); // thrust in acceleration
-		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust/(9.8 * 1.0/this->hoverThrottle_))); // percent + offset
+		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust/(9.8 * 1.0/this->hoverThrottle_) + 0.05)); // percent + offset
 		cmd(3) = thrustPercent;
 		cout << "body rate: " << cmd(0) << " " << cmd(1) << " " << cmd(2) << endl;
 		cout << "thrust percent: " << thrustPercent << endl;

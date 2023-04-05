@@ -49,8 +49,6 @@ namespace controller{
 			void publishCommand(const Eigen::Vector4d &cmd);
 			void computeAttitudeAndAccRef(Eigen::Vector4d& attitudeRefQuat, Eigen::Vector3d& accRef);
 			void computeBodyRate(const Eigen::Vector4d& attitudeRefQuat, const Eigen::Vector3d& accRef, Eigen::Vector4d& cmd);
-
-
 	};
 }
 
