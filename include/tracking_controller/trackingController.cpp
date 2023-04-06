@@ -128,6 +128,18 @@ namespace controller{
 	void trackingController::registerPub(){
 		// command publisher
 		this->cmdPub_ = this->nh_.advertise<mavros_msgs::AttitudeTarget>("/mavros/setpoint_raw/attitude", 1);
+	
+		// current pose visualization publisher
+		this->poseVisPub_ = this->nh_.advertise<geometry_msgs::PoseStamped>("/tracking_controller/robot_pose", 1);
+
+		// trajectory history visualization publisher
+		this->histTrajVisPub_ = this->nh_.advertise<nav_msgs::Path>("/tracking_controller/trajectory_history", 1);
+
+		// target pose visualization publisher
+		this->targetVisPub_ = this->nh_.advertise<geometry_msgs::PoseStamped>("/tracking_controller/target_pose", 1);
+	
+		// target trajectory history publisher
+		this->targetHistTrajVisPub_ = this->nh_.advertise<nav_msgs::Path>("/tracking_controller/target_trajectory_history", 1); 
 	}
 
 
@@ -140,6 +152,9 @@ namespace controller{
 	
 		// controller publisher timer
 		this->cmdTimer_ = this->nh_.createTimer(ros::Duration(0.01), &trackingController::cmdCB, this);
+
+		// visualization timer
+		this->visTimer_ = this->nh_.createTimer(ros::Duration(0.033), &trackingController::visCB, this);
 	}
 
 
@@ -169,6 +184,13 @@ namespace controller{
 		this->publishCommand(cmd);
 	}
 
+
+	void trackingController::visCB(const ros::TimerEvent&){
+		this->publishPoseVis();
+		this->publishHistTraj();
+		this->publishTargetVis();
+		this->publishTargetHistTraj();
+	}
 
 
 	void trackingController::publishCommand(const Eigen::Vector4d& cmd){
@@ -289,5 +311,67 @@ namespace controller{
 		cmd(3) = thrustPercent;
 		cout << "body rate: " << cmd(0) << " " << cmd(1) << " " << cmd(2) << endl;
 		cout << "thrust percent: " << thrustPercent << endl;
+	}
+
+
+	void trackingController::publishPoseVis(){
+		geometry_msgs::PoseStamped ps;
+		ps.header.frame_id = "map";
+		ps.header.stamp = ros::Time::now();
+		ps.pose.position.x = this->odom_.pose.pose.position.x;
+		ps.pose.position.y = this->odom_.pose.pose.position.y;
+		ps.pose.position.z = this->odom_.pose.pose.position.z;
+		ps.pose.orientation = this->odom_.pose.pose.orientation;
+		if (this->histTraj_.size() <= 100){
+			this->histTraj_.push_back(ps);
+		}
+		else{
+			this->histTraj_.push_back(ps);
+			this->histTraj_.pop_front();
+		}
+		this->poseVis_ = ps;
+		this->poseVisPub_.publish(ps);
+	}
+
+	void trackingController::publishHistTraj(){
+		nav_msgs::Path histTrajMsg;
+		histTrajMsg.header.frame_id = "map";
+		histTrajMsg.header.stamp = ros::Time::now();
+		for (size_t i=0; i<this->histTraj_.size(); ++i){
+			histTrajMsg.poses.push_back(this->histTraj_[i]);
+		}
+		
+		this->histTrajVisPub_.publish(histTrajMsg);
+	}
+
+	void trackingController::publishTargetVis(){
+		geometry_msgs::PoseStamped ps;
+		ps.header.frame_id = "map";
+		ps.header.stamp = ros::Time::now();
+		ps.pose.position.x = this->target_.position.x;
+		ps.pose.position.y = this->target_.position.y;
+		ps.pose.position.z = this->target_.position.z;
+		ps.pose.orientation = controller::quaternion_from_rpy(0, 0, this->target_.yaw);
+		if (this->targetHistTraj_.size() <= 100){
+			this->targetHistTraj_.push_back(ps);
+		}
+		else{
+			this->targetHistTraj_.push_back(ps);
+			this->targetHistTraj_.pop_front();
+		}
+
+		this->targetPoseVis_ = ps;
+		this->targetVisPub_.publish(ps);		
+	}
+
+	void trackingController::publishTargetHistTraj(){
+		nav_msgs::Path targetHistTrajMsg;
+		targetHistTrajMsg.header.frame_id = "map";
+		targetHistTrajMsg.header.stamp = ros::Time::now();
+		for (size_t i=0; i<this->targetHistTraj_.size(); ++i){
+			targetHistTrajMsg.poses.push_back(this->targetHistTraj_[i]);
+		}
+		
+		this->targetHistTrajVisPub_.publish(targetHistTrajMsg);
 	}
 }

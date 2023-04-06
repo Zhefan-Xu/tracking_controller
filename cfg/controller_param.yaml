@@ -13,10 +13,10 @@ position_i: [0.0, 0.0, 1.0]
 position_d: [0.0, 0.0, 0.0]
 
 # Velocity
-velocity_p: [5.0, 5.0, 2.0]
+velocity_p: [5.0, 5.0, 1.0]
 velocity_i: [0.0, 0.0, 0.0]
 velocity_d: [0.0, 0.0, 0.0]
 
 # Attitude Control
 attitude_control_tau: 0.3
-hover_throttle: 0.55 # this need to be very accurate for a good control (most important)
+hover_throttle: 0.7 # this need to be very accurate for a good control (most important)
