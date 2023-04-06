@@ -24,6 +24,7 @@ namespace controller{
 
 			// parameters
 			Eigen::Vector3d pPos_;
+			Eigen::Vector3d iPos_;
 			Eigen::Vector3d pVel_;
 			double attitudeControlTau_;
 			double hoverThrottle_;
@@ -31,8 +32,12 @@ namespace controller{
 			// controller data
 			bool odomReceived_ = false;
 			bool targetReceived_ = false;
+			bool firstTime_ = true;
 			nav_msgs::Odometry odom_;
 			tracking_controller::Target target_;
+			ros::Time prevTime_;
+			double deltaTime_;
+			Eigen::Vector3d posErrorInt_; // integral of position error
 
 
 		public:

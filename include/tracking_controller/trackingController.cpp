@@ -30,6 +30,21 @@ namespace controller{
 			cout << "[trackingController]: Position p is set to: " << "[" << this->pPos_(0) << ", " << this->pPos_(1) << ", " << this->pPos_(2) << "]." << endl;
 		}	
 
+		// I for Position
+		std::vector<double> iPosTemp;
+		if (not this->nh_.getParam("controller/position_i", iPosTemp)){
+			this->iPos_(0) = 0.0;
+			this->iPos_(1) = 0.0;
+			this->iPos_(2) = 0.0;
+			cout << "[trackingController]: No position i param. Use default: [0.0, 0.0, 0.0]." << endl;
+		}
+		else{
+			this->iPos_(0) = iPosTemp[0];
+			this->iPos_(1) = iPosTemp[1];
+			this->iPos_(2) = iPosTemp[2];			
+			cout << "[trackingController]: Position i is set to: " << "[" << this->iPos_(0) << ", " << this->iPos_(1) << ", " << this->iPos_(2) << "]." << endl;
+		}
+
 		// P for Velocity
 		std::vector<double> pVelTemp;
 		if (not this->nh_.getParam("controller/velocity_p", pVelTemp)){
@@ -133,6 +148,18 @@ namespace controller{
 			4. gravity
 		*/
 
+		if (this->firstTime_){
+			this->prevTime_ = ros::Time::now();
+			this->deltaTime_ = 0.0;
+			this->posErrorInt_ = Eigen::Vector3d (0.0, 0.0, 0.0);
+			this->firstTime_ = false;
+		}
+		else{
+			ros::Time currTime = ros::Time::now();
+			this->deltaTime_ = (currTime - this->prevTime_).toSec();
+			this->prevTime_ = currTime;
+		}
+
 		// 1. target acceleration
 		Eigen::Vector3d accTarget (this->target_.acceleration.x, this->target_.acceleration.y, this->target_.acceleration.z);
 
@@ -145,7 +172,10 @@ namespace controller{
 		Eigen::Vector3d currVel = currRot * currVelBody;
 		Eigen::Vector3d targetPos (this->target_.position.x, this->target_.position.y, this->target_.position.z);
 		Eigen::Vector3d targetVel (this->target_.velocity.x, this->target_.velocity.y, this->target_.velocity.z);
-		Eigen::Vector3d accFeedback = this->pPos_.asDiagonal() * (targetPos - currPos) + this->pVel_.asDiagonal() * (targetVel - currVel);
+		Eigen::Vector3d positionError = targetPos - currPos;
+		Eigen::Vector3d velovityError = targetVel - currVel;
+		this->posErrorInt_ += this->deltaTime_ * positionError;
+		Eigen::Vector3d accFeedback = this->pPos_.asDiagonal() * positionError + this->iPos_.asDiagonal() * this->posErrorInt_ + this->pVel_.asDiagonal() * velovityError;
 
 
 		// 3. air drag
@@ -173,8 +203,7 @@ namespace controller{
 		attitudeRefQuat = controller::rot2Quaternion(attitudeRefRot);
 
 
-		Eigen::Vector3d positionError = targetPos - currPos;
-		Eigen::Vector3d velovityError = targetVel - currVel;
+
 		cout << "Position Error: " << positionError(0) << " " << positionError(1) << " " << positionError(2) << endl;
 		cout << "Target Velocity: " << targetVel(0) << " " << targetVel(1) << " " << targetVel(2) << endl;
 		cout << "Current Velocity: " << currVel(0) << " " << currVel(1) << " " << currVel(2) << endl; 
