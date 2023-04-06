@@ -45,6 +45,22 @@ namespace controller{
 			cout << "[trackingController]: Position i is set to: " << "[" << this->iPos_(0) << ", " << this->iPos_(1) << ", " << this->iPos_(2) << "]." << endl;
 		}
 
+		// D for Position
+		std::vector<double> dPosTemp;
+		if (not this->nh_.getParam("controller/position_d", dPosTemp)){
+			this->dPos_(0) = 0.0;
+			this->dPos_(1) = 0.0;
+			this->dPos_(2) = 0.0;
+			cout << "[trackingController]: No position d param. Use default: [0.0, 0.0, 0.0]." << endl;
+		}
+		else{
+			this->dPos_(0) = dPosTemp[0];
+			this->dPos_(1) = dPosTemp[1];
+			this->dPos_(2) = dPosTemp[2];			
+			cout << "[trackingController]: Position d is set to: " << "[" << this->dPos_(0) << ", " << this->dPos_(1) << ", " << this->dPos_(2) << "]." << endl;
+		}
+
+
 		// P for Velocity
 		std::vector<double> pVelTemp;
 		if (not this->nh_.getParam("controller/velocity_p", pVelTemp)){
@@ -58,6 +74,36 @@ namespace controller{
 			this->pVel_(1) = pVelTemp[1];
 			this->pVel_(2) = pVelTemp[2];	
 			cout << "[trackingController]: Velocity p is set to:" << "[" << this->pVel_(0) << ", " << this->pVel_(1) << ", " << this->pVel_(2) << "]." << endl; 
+		}
+
+		// I for Velocity
+		std::vector<double> iVelTemp;
+		if (not this->nh_.getParam("controller/velocity_i", iVelTemp)){
+			this->iVel_(0) = 0.0;
+			this->iVel_(1) = 0.0;
+			this->iVel_(2) = 0.0;			
+			cout << "[trackingController]: No velocity p param. Use default: [0.0, 0.0, 0.0]." << endl;
+		}
+		else{
+			this->iVel_(0) = iVelTemp[0];
+			this->iVel_(1) = iVelTemp[1];
+			this->iVel_(2) = iVelTemp[2];	
+			cout << "[trackingController]: Velocity i is set to:" << "[" << this->iVel_(0) << ", " << this->iVel_(1) << ", " << this->iVel_(2) << "]." << endl; 
+		}
+
+		// D for Velocity
+		std::vector<double> dVelTemp;
+		if (not this->nh_.getParam("controller/velocity_d", dVelTemp)){
+			this->dVel_(0) = 0.0;
+			this->dVel_(1) = 0.0;
+			this->dVel_(2) = 0.0;			
+			cout << "[trackingController]: No velocity p param. Use default: [0.0, 0.0, 0.0]." << endl;
+		}
+		else{
+			this->dVel_(0) = dVelTemp[0];
+			this->dVel_(1) = dVelTemp[1];
+			this->dVel_(2) = dVelTemp[2];	
+			cout << "[trackingController]: Velocity d is set to:" << "[" << this->dVel_(0) << ", " << this->dVel_(1) << ", " << this->dVel_(2) << "]." << endl; 
 		}
 
 		// Attitude control tau (attitude controller by body rate)
@@ -141,7 +187,8 @@ namespace controller{
 	void trackingController::computeAttitudeAndAccRef(Eigen::Vector4d& attitudeRefQuat, Eigen::Vector3d& accRef){
 		// Find the reference acceleration for motors, then convert the acceleration into attitude
 
-		/* There are four components of reference acceleration:
+		/* 
+			There are four components of reference acceleration:
 			1. target acceleration (from setpoint)
 			2. acceleration from feedback of position and velocity (P control)
 			3. air drag (not consider this now)
@@ -152,7 +199,8 @@ namespace controller{
 			this->prevTime_ = ros::Time::now();
 			this->deltaTime_ = 0.0;
 			this->posErrorInt_ = Eigen::Vector3d (0.0, 0.0, 0.0);
-			this->firstTime_ = false;
+			this->velErrorInt_ = Eigen::Vector3d (0.0, 0.0, 0.0);
+			// this->firstTime_ = false;
 		}
 		else{
 			ros::Time currTime = ros::Time::now();
@@ -164,7 +212,7 @@ namespace controller{
 		Eigen::Vector3d accTarget (this->target_.acceleration.x, this->target_.acceleration.y, this->target_.acceleration.z);
 
 
-		// 2. position & velocity feedback control
+		// 2. position & velocity feedback control (PID control for both position and velocity)
 		Eigen::Vector3d currPos (this->odom_.pose.pose.position.x, this->odom_.pose.pose.position.y, this->odom_.pose.pose.position.z);
 		Eigen::Vector3d currVelBody (this->odom_.twist.twist.linear.x, this->odom_.twist.twist.linear.y, this->odom_.twist.twist.linear.z);
 		Eigen::Vector4d currQuat (this->odom_.pose.pose.orientation.w, this->odom_.pose.pose.orientation.x, this->odom_.pose.pose.orientation.y, this->odom_.pose.pose.orientation.z);
@@ -173,9 +221,20 @@ namespace controller{
 		Eigen::Vector3d targetPos (this->target_.position.x, this->target_.position.y, this->target_.position.z);
 		Eigen::Vector3d targetVel (this->target_.velocity.x, this->target_.velocity.y, this->target_.velocity.z);
 		Eigen::Vector3d positionError = targetPos - currPos;
-		Eigen::Vector3d velovityError = targetVel - currVel;
-		this->posErrorInt_ += this->deltaTime_ * positionError;
-		Eigen::Vector3d accFeedback = this->pPos_.asDiagonal() * positionError + this->iPos_.asDiagonal() * this->posErrorInt_ + this->pVel_.asDiagonal() * velovityError;
+		Eigen::Vector3d velocityError = targetVel - currVel;
+		this->posErrorInt_ += this->deltaTime_ * positionError; 
+		this->velErrorInt_ += this->deltaTime_ * velocityError;
+		if (this->firstTime_){
+			this->deltaPosError_ = Eigen::Vector3d (0.0, 0.0, 0.0); this->prevPosError_ = positionError;
+			this->deltaVelError_ = Eigen::Vector3d (0.0, 0.0, 0.0); this->prevVelError_ = velocityError;
+			this->firstTime_ = false;
+		}
+		else{
+			this->deltaPosError_ = (positionError - this->prevPosError_)/this->deltaTime_; this->prevPosError_ = positionError;
+			this->deltaVelError_ = (velocityError - this->prevPosError_)/this->deltaTime_; this->prevVelError_ = velocityError;
+		}
+		Eigen::Vector3d accFeedback = this->pPos_.asDiagonal() * positionError + this->iPos_.asDiagonal() * this->posErrorInt_ + this->dPos_.asDiagonal() * this->deltaPosError_ +
+									  this->pVel_.asDiagonal() * velocityError + this->iVel_.asDiagonal() * this->velErrorInt_ + this->dVel_.asDiagonal() * this->deltaVelError_;
 
 
 		// 3. air drag
@@ -207,7 +266,7 @@ namespace controller{
 		cout << "Position Error: " << positionError(0) << " " << positionError(1) << " " << positionError(2) << endl;
 		cout << "Target Velocity: " << targetVel(0) << " " << targetVel(1) << " " << targetVel(2) << endl;
 		cout << "Current Velocity: " << currVel(0) << " " << currVel(1) << " " << currVel(2) << endl; 
-		cout << "Velocity Error: " << velovityError(0) << " " << velovityError(1) << " " << velovityError(2) << endl;
+		cout << "Velocity Error: " << velocityError(0) << " " << velocityError(1) << " " << velocityError(2) << endl;
 		cout << "Feedback acceleration: " << accFeedback(0) << " " << accFeedback(1) << " " << accFeedback(2) << endl;
 		cout << "Desired Acceleration: " << accRef(0) << " " << accRef(1) << " " << accRef(2) << endl;
 	}

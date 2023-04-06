@@ -23,9 +23,8 @@ namespace controller{
 			ros::Timer cmdTimer_; // command timer
 
 			// parameters
-			Eigen::Vector3d pPos_;
-			Eigen::Vector3d iPos_;
-			Eigen::Vector3d pVel_;
+			Eigen::Vector3d pPos_, iPos_, dPos_;
+			Eigen::Vector3d pVel_, iVel_, dVel_;
 			double attitudeControlTau_;
 			double hoverThrottle_;
 
@@ -38,6 +37,9 @@ namespace controller{
 			ros::Time prevTime_;
 			double deltaTime_;
 			Eigen::Vector3d posErrorInt_; // integral of position error
+			Eigen::Vector3d velErrorInt_; // integral of velocity error
+			Eigen::Vector3d deltaPosError_, prevPosError_; // delta of position error
+			Eigen::Vector3d deltaVelError_, prevVelError_; // delta of velocity error
 
 
 		public:
