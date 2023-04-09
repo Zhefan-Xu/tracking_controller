@@ -182,6 +182,7 @@ namespace controller{
 
 		// 3. publish body rate as control input
 		this->publishCommand(cmd);
+		this->targetReceived_ = false;
 	}
 
 

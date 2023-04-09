@@ -36,6 +36,7 @@ namespace controller{
         tf2::convert(quat, tf_quat);
         tf2::Matrix3x3(tf_quat).getRPY(roll, pitch, yaw);
     }   
+    
     inline Eigen::Matrix3d quat2RotMatrix(const Eigen::Vector4d &q) {
         Eigen::Matrix3d rotmat;
         rotmat << q(0) * q(0) + q(1) * q(1) - q(2) * q(2) - q(3) * q(3), 2 * q(1) * q(2) - 2 * q(0) * q(3),
@@ -82,6 +83,7 @@ namespace controller{
         }
         return quat;
     }
+
     inline Eigen::Vector4d quatMultiplication(const Eigen::Vector4d &q, const Eigen::Vector4d &p) {
         Eigen::Vector4d quat;
         quat << p(0) * q(0) - p(1) * q(1) - p(2) * q(2) - p(3) * q(3), p(0) * q(1) + p(1) * q(0) - p(2) * q(3) + p(3) * q(2),
