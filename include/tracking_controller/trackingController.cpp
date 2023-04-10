@@ -140,6 +140,9 @@ namespace controller{
 	
 		// target trajectory history publisher
 		this->targetHistTrajVisPub_ = this->nh_.advertise<nav_msgs::Path>("/tracking_controller/target_trajectory_history", 1); 
+
+		// velocity and acceleration visualization publisher
+		this->velAndAccVisPub_ = this->nh_.advertise<visualization_msgs::Marker>("/tracking_controller/vel_and_acc_info", 1);
 	}
 
 
@@ -191,6 +194,7 @@ namespace controller{
 		this->publishHistTraj();
 		this->publishTargetVis();
 		this->publishTargetHistTraj();
+		this->publishVelAndAccVis();
 	}
 
 
@@ -374,5 +378,64 @@ namespace controller{
 		}
 		
 		this->targetHistTrajVisPub_.publish(targetHistTrajMsg);
+	}
+
+	void trackingController::publishVelAndAccVis(){
+		if (not this->odomReceived_){return;}
+		// current velocity
+		Eigen::Vector3d currPos (this->odom_.pose.pose.position.x, this->odom_.pose.pose.position.y, this->odom_.pose.pose.position.z);
+		Eigen::Vector3d currVelBody (this->odom_.twist.twist.linear.x, this->odom_.twist.twist.linear.y, this->odom_.twist.twist.linear.z);
+		Eigen::Vector4d currQuat (this->odom_.pose.pose.orientation.w, this->odom_.pose.pose.orientation.x, this->odom_.pose.pose.orientation.y, this->odom_.pose.pose.orientation.z);
+		Eigen::Matrix3d currRot = controller::quat2RotMatrix(currQuat);
+		Eigen::Vector3d currVel = currRot * currVelBody;	
+
+		// current acceleration	
+		Eigen::Vector3d currAcc;
+		ros::Time currTime = ros::Time::now();
+		if (this->velFirstTime_){
+			this->velPrevTime_ = ros::Time::now();
+			currAcc = Eigen::Vector3d (0.0, 0.0, 0.0);
+			this->velFirstTime_ = false;
+		}
+		else{
+			double dt = (currTime - this->prevTime_).toSec();
+			currAcc = (currVel - this->prevVel_)/dt;
+		}
+		this->prevVel_ = currVel;
+		this->prevTime_ = currTime;
+
+		// target velocity
+		Eigen::Vector3d targetVel (this->target_.velocity.x, this->target_.velocity.y, this->target_.velocity.z);
+
+		// target acceleration
+		Eigen::Vector3d targetAcc (this->target_.acceleration.x, this->target_.acceleration.y, this->target_.acceleration.z);
+
+
+		visualization_msgs::Marker velAndAccVisMsg;
+        velAndAccVisMsg.header.frame_id = "map";
+        velAndAccVisMsg.header.stamp = ros::Time::now();
+        velAndAccVisMsg.ns = "tracking_controller";
+        // velAndAccVisMsg.id = 0;
+        velAndAccVisMsg.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+        velAndAccVisMsg.pose.position.x = this->odom_.pose.pose.position.x;
+        velAndAccVisMsg.pose.position.y = this->odom_.pose.pose.position.y;
+        velAndAccVisMsg.pose.position.z = this->odom_.pose.pose.position.z + 0.4;
+        velAndAccVisMsg.scale.x = 0.15;
+        velAndAccVisMsg.scale.y = 0.15;
+        velAndAccVisMsg.scale.z = 0.15;
+        velAndAccVisMsg.color.a = 1.0;
+        velAndAccVisMsg.color.r = 1.0;
+        velAndAccVisMsg.color.g = 1.0;
+        velAndAccVisMsg.color.b = 1.0;
+        velAndAccVisMsg.lifetime = ros::Duration(0.05);
+
+        double vNorm = currVel.norm();
+        double aNorm = currAcc.norm();
+        double vNormTgt = targetVel.norm();
+        double aNormTgt = targetAcc.norm();
+
+        std::string velText = "|V|=" + std::to_string(vNorm) + ", |VT|=" + std::to_string(vNormTgt) + "\n|A|=" + std::to_string(aNorm) + ", |AT|=" + std::to_string(aNormTgt) ;
+        velAndAccVisMsg.text = velText;
+        this->velAndAccVisPub_.publish(velAndAccVisMsg);
 	}
 }

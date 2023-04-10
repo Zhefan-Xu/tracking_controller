@@ -10,6 +10,7 @@
 #include <queue>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
+#include <visualization_msgs/Marker.h>
 #include <mavros_msgs/AttitudeTarget.h>
 #include <tracking_controller/Target.h>
 #include <tracking_controller/utils.h>
@@ -26,6 +27,7 @@ namespace controller{
 			ros::Publisher targetVisPub_; // target pose publisher
 			ros::Publisher histTrajVisPub_; // history trajectory publisher
 			ros::Publisher targetHistTrajVisPub_; // target trajectory publisher
+			ros::Publisher velAndAccVisPub_; // velocity and acceleration visualization publisher
 			ros::Timer cmdTimer_; // command timer
 			ros::Timer visTimer_; // visualization timer
 
@@ -53,6 +55,9 @@ namespace controller{
 			std::deque<geometry_msgs::PoseStamped> histTraj_;
 			geometry_msgs::PoseStamped targetPoseVis_;
 			std::deque<geometry_msgs::PoseStamped> targetHistTraj_;
+			bool velFirstTime_ = true;
+			Eigen::Vector3d prevVel_;
+			ros::Time velPrevTime_;
 
 
 		public:
@@ -70,13 +75,13 @@ namespace controller{
 			void publishCommand(const Eigen::Vector4d &cmd);
 			void computeAttitudeAndAccRef(Eigen::Vector4d& attitudeRefQuat, Eigen::Vector3d& accRef);
 			void computeBodyRate(const Eigen::Vector4d& attitudeRefQuat, const Eigen::Vector3d& accRef, Eigen::Vector4d& cmd);
-	
 
 			// visualization
 			void publishPoseVis();
 			void publishHistTraj();
 			void publishTargetVis();
 			void publishTargetHistTraj();
+			void publishVelAndAccVis();
 	};
 }
 
