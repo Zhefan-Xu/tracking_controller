@@ -309,9 +309,10 @@ namespace controller{
 		cmd(2) = (2.0 / this->attitudeControlTau_) * std::copysign(1.0, attitudeErrorQuat(0)) * attitudeErrorQuat(3);
 		
 		// thrust
-		Eigen::Matrix3d currAttitudeRot = quat2RotMatrix(currAttitudeQuat);
-		Eigen::Vector3d zDirection = currAttitudeRot.col(2); // body z axis 
-		double thrust = accRef.dot(zDirection); // thrust in acceleration
+		// Eigen::Matrix3d currAttitudeRot = quat2RotMatrix(currAttitudeQuat);
+		// Eigen::Vector3d zDirection = currAttitudeRot.col(2); // body z axis 
+		// double thrust = accRef.dot(zDirection); // thrust in acceleration
+		double thrust = accRef.norm();
 		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust/(9.8 * 1.0/this->hoverThrottle_))); // percent
 		cmd(3) = thrustPercent;
 		cout << "body rate: " << cmd(0) << " " << cmd(1) << " " << cmd(2) << endl;
@@ -398,11 +399,14 @@ namespace controller{
 			this->velFirstTime_ = false;
 		}
 		else{
-			double dt = (currTime - this->prevTime_).toSec();
+			double dt = (currTime - this->velPrevTime_).toSec();
 			currAcc = (currVel - this->prevVel_)/dt;
+			// cout << "dt: " << dt << endl;
+			// cout << "current velocity: " << currVel(0) << " " << currVel(1) << " " << currVel(2) << endl;
+			// cout << "prev velocity: " << this->prevVel_(0) << " " << this->prevVel_(1) << " " << this->prevVel_(2) << endl;
 		}
 		this->prevVel_ = currVel;
-		this->prevTime_ = currTime;
+		this->velPrevTime_ = currTime;
 
 		// target velocity
 		Eigen::Vector3d targetVel (this->target_.velocity.x, this->target_.velocity.y, this->target_.velocity.z);
