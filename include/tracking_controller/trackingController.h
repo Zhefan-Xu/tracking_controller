@@ -73,8 +73,8 @@ namespace controller{
 			void visCB(const ros::TimerEvent&);
 
 			void publishCommand(const Eigen::Vector4d &cmd);
-			void computeAttitudeAndAccRef(Eigen::Vector4d& attitudeRefQuat, Eigen::Vector3d& accRef);
-			void computeBodyRate(const Eigen::Vector4d& attitudeRefQuat, const Eigen::Vector3d& accRef, Eigen::Vector4d& cmd);
+			void computeAttitudeAndAccRef(Eigen::Vector4d& attitudeRefQuat, Eigen::Vector4d& reducedAttitudeRefQuat, Eigen::Vector3d& accRef);
+			void computeBodyRate(const Eigen::Vector4d& attitudeRefQuat, const Eigen::Vector4d& reducedAttitudeRefQuat, const Eigen::Vector3d& accRef, Eigen::Vector4d& cmd);
 
 			// visualization
 			void publishPoseVis();

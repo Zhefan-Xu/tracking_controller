@@ -176,12 +176,12 @@ namespace controller{
 		Eigen::Vector4d cmd;
 
 		// 1. Find target reference attitude from the desired acceleration
-		Eigen::Vector4d attitudeRefQuat;
+		Eigen::Vector4d attitudeRefQuat, reducedAttitudeRefQuat;
 		Eigen::Vector3d accRef;
-		this->computeAttitudeAndAccRef(attitudeRefQuat, accRef);
+		this->computeAttitudeAndAccRef(attitudeRefQuat, reducedAttitudeRefQuat, accRef);
 
 		// 2. Compute the body rate from the reference attitude
-		this->computeBodyRate(attitudeRefQuat, accRef, cmd);
+		this->computeBodyRate(attitudeRefQuat, reducedAttitudeRefQuat, accRef, cmd);
 
 		// 3. publish body rate as control input
 		this->publishCommand(cmd);
@@ -211,7 +211,7 @@ namespace controller{
 	}
 
 
-	void trackingController::computeAttitudeAndAccRef(Eigen::Vector4d& attitudeRefQuat, Eigen::Vector3d& accRef){
+	void trackingController::computeAttitudeAndAccRef(Eigen::Vector4d& attitudeRefQuat, Eigen::Vector4d& reducedAttitudeRefQuat, Eigen::Vector3d& accRef){
 		// Find the reference acceleration for motors, then convert the acceleration into attitude
 
 		/* 
@@ -275,8 +275,8 @@ namespace controller{
 
 
 		// Convert the reference acceleration into the reference attitude
-		double yaw = this->target_.yaw;  // todo: the original implementation uses the current yaw or velocity yaw
-		Eigen::Vector3d direction (cos(yaw), sin(yaw), 0.0);
+		double targetYaw = this->target_.yaw;  // todo: the original implementation uses the current yaw or velocity yaw
+		Eigen::Vector3d direction (cos(targetYaw), sin(targetYaw), 0.0);
 		Eigen::Vector3d zDirection = accRef/accRef.norm();
 		Eigen::Vector3d yDirection = zDirection.cross(direction)/(zDirection.cross(direction)).norm();
 		Eigen::Vector3d xDirection = yDirection.cross(zDirection)/(yDirection.cross(zDirection)).norm();
@@ -288,7 +288,19 @@ namespace controller{
 					      xDirection(2), yDirection(2), zDirection(2);
 		attitudeRefQuat = controller::rot2Quaternion(attitudeRefRot);
 
+		// Convert the reference acceleration into the reduced reference attitude 
+		double currYaw = controller::rpy_from_quaternion(this->odom_.pose.pose.orientation);  // todo: the original implementation uses the current yaw or velocity yaw
+		Eigen::Vector3d directionReduced (cos(currYaw), sin(currYaw), 0.0);
+		Eigen::Vector3d zDirectionReduced = accRef/accRef.norm();
+		Eigen::Vector3d yDirectionReduced = zDirectionReduced.cross(directionReduced)/(zDirectionReduced.cross(directionReduced)).norm();
+		Eigen::Vector3d xDirectionReduced = yDirectionReduced.cross(zDirectionReduced)/(yDirectionReduced.cross(zDirectionReduced)).norm();
 
+		// with three axis vector, we can construct the rotation matrix
+		Eigen::Matrix3d reducedAttitudeRefRot;
+		reducedAttitudeRefRot << xDirectionReduced(0), yDirectionReduced(0), zDirectionReduced(0),
+					   	  		 xDirectionReduced(1), yDirectionReduced(1), zDirectionReduced(1),
+					      		 xDirectionReduced(2), yDirectionReduced(2), zDirectionReduced(2);
+		reducedAttitudeRefQuat = controller::rot2Quaternion(reducedAttitudeRefRot);
 
 		cout << "Position Error: " << positionError(0) << " " << positionError(1) << " " << positionError(2) << endl;
 		cout << "Target Velocity: " << targetVel(0) << " " << targetVel(1) << " " << targetVel(2) << endl;
@@ -298,12 +310,28 @@ namespace controller{
 		cout << "Desired Acceleration: " << accRef(0) << " " << accRef(1) << " " << accRef(2) << endl;
 	}
 
-	void trackingController::computeBodyRate(const Eigen::Vector4d& attitudeRefQuat, const Eigen::Vector3d& accRef, Eigen::Vector4d& cmd){
+	void trackingController::computeBodyRate(const Eigen::Vector4d& attitudeRefQuat, const Eigen::Vector4d& reducedAttitudeRefQuat, const Eigen::Vector3d& accRef, Eigen::Vector4d& cmd){
 		// body rate
 		Eigen::Vector4d currAttitudeQuat (this->odom_.pose.pose.orientation.w, this->odom_.pose.pose.orientation.x, this->odom_.pose.pose.orientation.y, this->odom_.pose.pose.orientation.z);
 		Eigen::Vector4d inverseQuat(1.0, -1.0, -1.0, -1.0);
 		Eigen::Vector4d currAttitudeQuatInv = inverseQuat.asDiagonal() * currAttitudeQuat;
-		Eigen::Vector4d attitudeErrorQuat = quatMultiplication(currAttitudeQuatInv, attitudeRefQuat);
+
+		// mixer of full attitude control and reduced attitude control
+		Eigen::Vector4d attitudeRefQuatInv = inverseQuat.asDiagonal() * attitudeRefQuat;
+		Eigen::Vector4d mixAttitude = quatMultiplication(attitudeRefQuatInv, reducedAttitudeRefQuat);
+		double alphaMix = 2.0 * acos(mixAttitude(0));
+		double p = 1.0;
+		Eigen::Vector4d mixAttitudeAdjusted (cos(p * alphaMix/2.0), 0.0, 0.0, sin(p * alphaMix/2.0));
+		
+
+		cout << "reference attitude: " << attitudeRefQuat(0) << " " << attitudeRefQuat(1) << " " << attitudeRefQuat(2) << " " << attitudeRefQuat(3) << endl;
+		cout << "reduced attitude: " << reducedAttitudeRefQuat(0) << " " << reducedAttitudeRefQuat(1) << " " << reducedAttitudeRefQuat(2) << " " << reducedAttitudeRefQuat(3) << endl;
+		cout << "mix attitude: " << mixAttitude(0) << " " << mixAttitude(1) << " " << mixAttitude(2) << " " << mixAttitude(3) << endl;
+
+		// Eigen::Vector4d attitudeErrorQuat = quatMultiplication(currAttitudeQuatInv, attitudeRefQuat); // full attitude control
+		Eigen::Vector4d mixAttitudeRefQuat = quatMultiplication(reducedAttitudeRefQuat, mixAttitudeAdjusted);
+		cout << "mix attitude cmd: " << mixAttitudeRefQuat(0) << " " << mixAttitudeRefQuat(1) << " " << mixAttitudeRefQuat(2) << " " << mixAttitudeRefQuat(3) << endl;
+		Eigen::Vector4d attitudeErrorQuat = quatMultiplication(currAttitudeQuatInv, mixAttitudeRefQuat); // mixed attitude control
 		cmd(0) = (2.0 / this->attitudeControlTau_) * std::copysign(1.0, attitudeErrorQuat(0)) * attitudeErrorQuat(1);
 		cmd(1) = (2.0 / this->attitudeControlTau_) * std::copysign(1.0, attitudeErrorQuat(0)) * attitudeErrorQuat(2);
 		cmd(2) = (2.0 / this->attitudeControlTau_) * std::copysign(1.0, attitudeErrorQuat(0)) * attitudeErrorQuat(3);
