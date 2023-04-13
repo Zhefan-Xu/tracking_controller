@@ -20,3 +20,4 @@ velocity_d: [0.0, 0.0, 0.0]
 # Attitude Control
 attitude_control_tau: 0.3
 hover_throttle: 0.7 # this need to be very accurate for a good control (most important)
+yaw_mixer_ratio: 1.0

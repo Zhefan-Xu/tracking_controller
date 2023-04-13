@@ -49,6 +49,7 @@ namespace controller{
 			Eigen::Vector3d velErrorInt_; // integral of velocity error
 			Eigen::Vector3d deltaPosError_, prevPosError_; // delta of position error
 			Eigen::Vector3d deltaVelError_, prevVelError_; // delta of velocity error
+			double yawMixerRatio_;
 
 			// visualization
 			geometry_msgs::PoseStamped poseVis_;

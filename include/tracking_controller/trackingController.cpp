@@ -115,13 +115,22 @@ namespace controller{
 			cout << "[trackingController]: Attitude control tau is set to: " << this->attitudeControlTau_  << endl;
 		}
 
-		// Estimated Maximum acceleration
+		// Estimated Hover Throttle
 		if (not this->nh_.getParam("controller/hover_throttle", this->hoverThrottle_)){
 			this->hoverThrottle_ = 0.3;
 			cout << "[trackingController]: No hover throttle param. Use default: 0.3." << endl;
 		}
 		else{
 			cout << "[trackingController]: However throttle is set to: " << this->hoverThrottle_  << endl;
+		}
+
+		// Mixer ratio for yaw
+		if (not this->nh_.getParam("controller/yaw_mixer_ratio", this->yawMixerRatio_)){
+			this->yawMixerRatio_ = 1.0;
+			cout << "[trackingController]: No yaw mixer ratio param. Use default: 1.0." << endl;
+		}
+		else{
+			cout << "[trackingController]: Yaw mixer ratio is set to: " << this->yawMixerRatio_  << endl;
 		}
 	}
 
@@ -317,20 +326,20 @@ namespace controller{
 		Eigen::Vector4d currAttitudeQuatInv = inverseQuat.asDiagonal() * currAttitudeQuat;
 
 		// mixer of full attitude control and reduced attitude control
-		Eigen::Vector4d attitudeRefQuatInv = inverseQuat.asDiagonal() * attitudeRefQuat;
-		Eigen::Vector4d mixAttitude = quatMultiplication(attitudeRefQuatInv, reducedAttitudeRefQuat);
-		double alphaMix = 2.0 * acos(mixAttitude(0));
-		double p = 1.0;
-		Eigen::Vector4d mixAttitudeAdjusted (cos(p * alphaMix/2.0), 0.0, 0.0, sin(p * alphaMix/2.0));
+		Eigen::Vector4d reducedAttitudeRefQuatInv = inverseQuat.asDiagonal() * reducedAttitudeRefQuat;
+		Eigen::Vector4d mixAttitude = quatMultiplication(reducedAttitudeRefQuatInv, attitudeRefQuat);
+		double alphaMix = 2.0 * acos(mixAttitude(0)); // this will only be in range [0, PI] which does not include [-PI, 0]
+		if (mixAttitude(3) < 0) alphaMix = -alphaMix;
+		Eigen::Vector4d mixAttitudeAdjusted (cos(this->yawMixerRatio_ * alphaMix/2.0), 0.0, 0.0, sin(this->yawMixerRatio_ * alphaMix/2.0));
 		
 
-		cout << "reference attitude: " << attitudeRefQuat(0) << " " << attitudeRefQuat(1) << " " << attitudeRefQuat(2) << " " << attitudeRefQuat(3) << endl;
-		cout << "reduced attitude: " << reducedAttitudeRefQuat(0) << " " << reducedAttitudeRefQuat(1) << " " << reducedAttitudeRefQuat(2) << " " << reducedAttitudeRefQuat(3) << endl;
-		cout << "mix attitude: " << mixAttitude(0) << " " << mixAttitude(1) << " " << mixAttitude(2) << " " << mixAttitude(3) << endl;
+		// cout << "reference attitude: " << attitudeRefQuat(0) << " " << attitudeRefQuat(1) << " " << attitudeRefQuat(2) << " " << attitudeRefQuat(3) << endl;
+		// cout << "reduced attitude: " << reducedAttitudeRefQuat(0) << " " << reducedAttitudeRefQuat(1) << " " << reducedAttitudeRefQuat(2) << " " << reducedAttitudeRefQuat(3) << endl;
+		// cout << "mix attitude: " << mixAttitude(0) << " " << mixAttitude(1) << " " << mixAttitude(2) << " " << mixAttitude(3) << endl;
 
 		// Eigen::Vector4d attitudeErrorQuat = quatMultiplication(currAttitudeQuatInv, attitudeRefQuat); // full attitude control
 		Eigen::Vector4d mixAttitudeRefQuat = quatMultiplication(reducedAttitudeRefQuat, mixAttitudeAdjusted);
-		cout << "mix attitude cmd: " << mixAttitudeRefQuat(0) << " " << mixAttitudeRefQuat(1) << " " << mixAttitudeRefQuat(2) << " " << mixAttitudeRefQuat(3) << endl;
+		// cout << "mix attitude cmd: " << mixAttitudeRefQuat(0) << " " << mixAttitudeRefQuat(1) << " " << mixAttitudeRefQuat(2) << " " << mixAttitudeRefQuat(3) << endl;
 		Eigen::Vector4d attitudeErrorQuat = quatMultiplication(currAttitudeQuatInv, mixAttitudeRefQuat); // mixed attitude control
 		cmd(0) = (2.0 / this->attitudeControlTau_) * std::copysign(1.0, attitudeErrorQuat(0)) * attitudeErrorQuat(1);
 		cmd(1) = (2.0 / this->attitudeControlTau_) * std::copysign(1.0, attitudeErrorQuat(0)) * attitudeErrorQuat(2);
