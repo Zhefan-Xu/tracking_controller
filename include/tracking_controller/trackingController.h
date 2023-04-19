@@ -39,6 +39,7 @@ namespace controller{
 
 			// controller data
 			bool odomReceived_ = false;
+			bool firstTargetReceived_ = false;
 			bool targetReceived_ = false;
 			bool firstTime_ = true;
 			nav_msgs::Odometry odom_;

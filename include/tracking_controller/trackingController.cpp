@@ -168,6 +168,7 @@ namespace controller{
 
 	void trackingController::targetCB(const tracking_controller::TargetConstPtr& target){
 		this->target_ = *target;
+		this->firstTargetReceived_ = true;
 		this->targetReceived_ = true;
 	}
 
@@ -321,6 +322,7 @@ namespace controller{
 
 
 	void trackingController::publishPoseVis(){
+		if (not this->odomReceived_) return;
 		geometry_msgs::PoseStamped ps;
 		ps.header.frame_id = "map";
 		ps.header.stamp = ros::Time::now();
@@ -340,6 +342,7 @@ namespace controller{
 	}
 
 	void trackingController::publishHistTraj(){
+		if (not this->odomReceived_) return;
 		nav_msgs::Path histTrajMsg;
 		histTrajMsg.header.frame_id = "map";
 		histTrajMsg.header.stamp = ros::Time::now();
@@ -351,6 +354,7 @@ namespace controller{
 	}
 
 	void trackingController::publishTargetVis(){
+		if (not this->firstTargetReceived_) return;
 		geometry_msgs::PoseStamped ps;
 		ps.header.frame_id = "map";
 		ps.header.stamp = ros::Time::now();
@@ -367,10 +371,12 @@ namespace controller{
 		}
 
 		this->targetPoseVis_ = ps;
-		this->targetVisPub_.publish(ps);		
+		this->targetVisPub_.publish(ps);
+		
 	}
 
 	void trackingController::publishTargetHistTraj(){
+		if (not this->firstTargetReceived_) return;
 		nav_msgs::Path targetHistTrajMsg;
 		targetHistTrajMsg.header.frame_id = "map";
 		targetHistTrajMsg.header.stamp = ros::Time::now();
@@ -382,7 +388,7 @@ namespace controller{
 	}
 
 	void trackingController::publishVelAndAccVis(){
-		if (not this->odomReceived_){return;}
+		if (not this->odomReceived_) return;
 		// current velocity
 		Eigen::Vector3d currPos (this->odom_.pose.pose.position.x, this->odom_.pose.pose.position.y, this->odom_.pose.pose.position.z);
 		Eigen::Vector3d currVelBody (this->odom_.twist.twist.linear.x, this->odom_.twist.twist.linear.y, this->odom_.twist.twist.linear.z);
