@@ -5,7 +5,8 @@
 # 4. I don't think it is necessary to use position d and velocity i and d.
 #
 
-
+# body
+attitude_control: false
 
 # Position PID
 position_p: [2.0, 2.0, 2.0]
@@ -13,10 +14,10 @@ position_i: [0.0, 0.0, 1.0]
 position_d: [0.0, 0.0, 0.0]
 
 # Velocity
-velocity_p: [2.0, 2.0, 1.0]
+velocity_p: [2.0, 2.0, 2.0]
 velocity_i: [0.0, 0.0, 0.0]
 velocity_d: [0.0, 0.0, 0.0]
 
-# Attitude Control
-attitude_control_tau: 0.3
+# Body rate control 
+attitude_control_tau: 0.3 # (this will not be used if attitude control is true)
 hover_throttle: 0.7 # this need to be very accurate for a good control (most important)

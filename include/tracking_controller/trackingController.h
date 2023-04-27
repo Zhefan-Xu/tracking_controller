@@ -32,6 +32,7 @@ namespace controller{
 			ros::Timer visTimer_; // visualization timer
 
 			// parameters
+			bool attitudeControl_ = false;
 			Eigen::Vector3d pPos_, iPos_, dPos_;
 			Eigen::Vector3d pVel_, iVel_, dVel_;
 			double attitudeControlTau_;
@@ -73,7 +74,8 @@ namespace controller{
 			void cmdCB(const ros::TimerEvent&);
 			void visCB(const ros::TimerEvent&);
 
-			void publishCommand(const Eigen::Vector4d &cmd);
+			void publishCommand(const Eigen::Vector4d& cmd);
+			void publishCommand(const Eigen::Vector4d& cmd, const Eigen::Vector3d& accRef);
 			void computeAttitudeAndAccRef(Eigen::Vector4d& attitudeRefQuat, Eigen::Vector3d& accRef);
 			void computeBodyRate(const Eigen::Vector4d& attitudeRefQuat, const Eigen::Vector3d& accRef, Eigen::Vector4d& cmd);
 

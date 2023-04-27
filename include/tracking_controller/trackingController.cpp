@@ -15,6 +15,16 @@ namespace controller{
 
 
 	void trackingController::initParam(){
+		// attitude control/body rate control
+		if (not this->nh_.getParam("controller/attitude_control", this->attitudeControl_)){
+			this->attitudeControl_ = true;
+			cout << "[trackingController]: No attitude control param. Use default: attitude control." << endl;
+		}
+		else{
+			cout << "[trackingController]: Attitude control(1)/Body rate control(0) is set to: " << this->attitudeControl_  << endl;
+		}		
+
+
 		// P for Position
 		std::vector<double> pPosTemp;
 		if (not this->nh_.getParam("controller/position_p", pPosTemp)){
@@ -181,11 +191,20 @@ namespace controller{
 		Eigen::Vector3d accRef;
 		this->computeAttitudeAndAccRef(attitudeRefQuat, accRef);
 
-		// 2. Compute the body rate from the reference attitude
-		this->computeBodyRate(attitudeRefQuat, accRef, cmd);
+		
+		if (not this->attitudeControl_){
+			// 2. Compute the body rate from the reference attitude
+			this->computeBodyRate(attitudeRefQuat, accRef, cmd);
 
-		// 3. publish body rate as control input
-		this->publishCommand(cmd);
+			// 3. publish body rate as control input
+			this->publishCommand(cmd);
+		}
+		else{
+			// direct attitude control
+			cmd = attitudeRefQuat;
+			this->publishCommand(cmd, accRef);
+
+		}
 		this->targetReceived_ = false;
 	}
 
@@ -207,7 +226,22 @@ namespace controller{
 		cmdMsg.body_rate.y = cmd(1);
 		cmdMsg.body_rate.z = cmd(2);
 		cmdMsg.thrust = cmd(3);
-		cmdMsg.type_mask = cmdMsg.IGNORE_ATTITUDE; 
+		cmdMsg.type_mask = cmdMsg.IGNORE_ATTITUDE;
+		this->cmdPub_.publish(cmdMsg);
+	}
+
+	void trackingController::publishCommand(const Eigen::Vector4d& cmd, const Eigen::Vector3d& accRef){
+		mavros_msgs::AttitudeTarget cmdMsg;
+		cmdMsg.header.stamp = ros::Time::now();
+		cmdMsg.header.frame_id = "map";
+		cmdMsg.orientation.w = cmd(0);
+		cmdMsg.orientation.x = cmd(1);
+		cmdMsg.orientation.y = cmd(2);
+		cmdMsg.orientation.z = cmd(3);
+		double thrust = accRef.norm();
+		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust/(9.8 * 1.0/this->hoverThrottle_))); // percent		
+		cmdMsg.thrust = thrustPercent;
+		cmdMsg.type_mask = cmdMsg.IGNORE_ROLL_RATE + cmdMsg.IGNORE_PITCH_RATE + cmdMsg.IGNORE_YAW_RATE;		
 		this->cmdPub_.publish(cmdMsg);
 	}
 
@@ -291,12 +325,12 @@ namespace controller{
 
 
 
-		cout << "Position Error: " << positionError(0) << " " << positionError(1) << " " << positionError(2) << endl;
-		cout << "Target Velocity: " << targetVel(0) << " " << targetVel(1) << " " << targetVel(2) << endl;
-		cout << "Current Velocity: " << currVel(0) << " " << currVel(1) << " " << currVel(2) << endl; 
-		cout << "Velocity Error: " << velocityError(0) << " " << velocityError(1) << " " << velocityError(2) << endl;
-		cout << "Feedback acceleration: " << accFeedback(0) << " " << accFeedback(1) << " " << accFeedback(2) << endl;
-		cout << "Desired Acceleration: " << accRef(0) << " " << accRef(1) << " " << accRef(2) << endl;
+	// 	cout << "Position Error: " << positionError(0) << " " << positionError(1) << " " << positionError(2) << endl;
+	// 	cout << "Target Velocity: " << targetVel(0) << " " << targetVel(1) << " " << targetVel(2) << endl;
+	// 	cout << "Current Velocity: " << currVel(0) << " " << currVel(1) << " " << currVel(2) << endl; 
+	// 	cout << "Velocity Error: " << velocityError(0) << " " << velocityError(1) << " " << velocityError(2) << endl;
+	// 	cout << "Feedback acceleration: " << accFeedback(0) << " " << accFeedback(1) << " " << accFeedback(2) << endl;
+	// 	cout << "Desired Acceleration: " << accRef(0) << " " << accRef(1) << " " << accRef(2) << endl;
 	}
 
 	void trackingController::computeBodyRate(const Eigen::Vector4d& attitudeRefQuat, const Eigen::Vector3d& accRef, Eigen::Vector4d& cmd){
@@ -316,8 +350,8 @@ namespace controller{
 		double thrust = accRef.norm();
 		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust/(9.8 * 1.0/this->hoverThrottle_))); // percent
 		cmd(3) = thrustPercent;
-		cout << "body rate: " << cmd(0) << " " << cmd(1) << " " << cmd(2) << endl;
-		cout << "thrust percent: " << thrustPercent << endl;
+		// cout << "body rate: " << cmd(0) << " " << cmd(1) << " " << cmd(2) << endl;
+		// cout << "thrust percent: " << thrustPercent << endl;
 	}
 
 
