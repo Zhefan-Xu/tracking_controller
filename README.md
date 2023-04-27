@@ -1,2 +1,2 @@
 # tracking_controller
-need to fix visualization bugs
+tune performance with difference velocity
