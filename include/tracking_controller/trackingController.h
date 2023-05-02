@@ -37,6 +37,7 @@ namespace controller{
 			Eigen::Vector3d pVel_, iVel_, dVel_;
 			double attitudeControlTau_;
 			double hoverThrottle_;
+			bool verbose_;
 
 			// controller data
 			bool odomReceived_ = false;

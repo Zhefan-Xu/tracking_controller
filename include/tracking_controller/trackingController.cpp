@@ -131,7 +131,16 @@ namespace controller{
 			cout << "[trackingController]: No hover throttle param. Use default: 0.3." << endl;
 		}
 		else{
-			cout << "[trackingController]: However throttle is set to: " << this->hoverThrottle_  << endl;
+			cout << "[trackingController]: Hover throttle is set to: " << this->hoverThrottle_  << endl;
+		}
+
+		// Display message
+		if (not this->nh_.getParam("controller/verbose", this->verbose_)){
+			this->verbose_ = false;
+			cout << "[trackingController]: No display message param. Use default: false." << endl;
+		}
+		else{
+			cout << "[trackingController]: Dsiplay message is set to: " << this->verbose_  << endl;
 		}
 	}
 
@@ -295,6 +304,14 @@ namespace controller{
 			this->deltaPosError_ = (positionError - this->prevPosError_)/this->deltaTime_; this->prevPosError_ = positionError;
 			this->deltaVelError_ = (velocityError - this->prevPosError_)/this->deltaTime_; this->prevVelError_ = velocityError;
 		}
+		
+		// mask out the velocity input if needed
+		if (this->target_.type_mask == this->target_.IGNORE_ACC_VEL){
+			velocityError *= 0.0;
+			this->velErrorInt_ *= 0.0;
+			this->dVel_ *= 0.0;
+		}
+		
 		Eigen::Vector3d accFeedback = this->pPos_.asDiagonal() * positionError + this->iPos_.asDiagonal() * this->posErrorInt_ + this->dPos_.asDiagonal() * this->deltaPosError_ +
 									  this->pVel_.asDiagonal() * velocityError + this->iVel_.asDiagonal() * this->velErrorInt_ + this->dVel_.asDiagonal() * this->deltaVelError_;
 
@@ -306,6 +323,9 @@ namespace controller{
 		Eigen::Vector3d gravity {0.0, 0.0, -9.8};
 
 		// Final reference acceleration for motors
+		if (this->target_.type_mask == this->target_.IGNORE_ACC_VEL or this->target_.type_mask == this->target_.IGNORE_ACC){
+			accTarget *= 0.0;
+		}
 		accRef = accTarget + accFeedback - accAirdrag - gravity;
 
 
@@ -350,8 +370,11 @@ namespace controller{
 		double thrust = accRef.norm();
 		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust/(9.8 * 1.0/this->hoverThrottle_))); // percent
 		cmd(3) = thrustPercent;
+		
 		// cout << "body rate: " << cmd(0) << " " << cmd(1) << " " << cmd(2) << endl;
-		// cout << "thrust percent: " << thrustPercent << endl;
+		if (this->verbose_){
+			cout << "[Tracking Controller]: Thrust percent: " << thrustPercent << endl;
+		}
 	}
 
 
