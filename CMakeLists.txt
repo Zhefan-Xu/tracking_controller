@@ -127,6 +127,7 @@ include_directories(
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
   include/${PROJECT_NAME}/trackingController.cpp
+  include/${PROJECT_NAME}/kalmanFilter.cpp
 )
 
 ## Add cmake target dependencies of the library

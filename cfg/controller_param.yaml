@@ -9,18 +9,18 @@
 attitude_control: false
 
 # Position PID
-position_p: [1.8, 1.8, 1.0]
-position_i: [0.0, 0.0, 0.1]
+position_p: [1.2, 1.2, 1.0]
+position_i: [0.0, 0.0, 0.5]
 position_d: [0.0, 0.0, 0.0]
 
 # Velocity
-velocity_p: [1.5, 1.5, 1.0]
+velocity_p: [1.0, 1.0, 1.0]
 velocity_i: [0.0, 0.0, 0.0]
 velocity_d: [0.0, 0.0, 0.0]
 
 # Body rate control 
 attitude_control_tau: 0.3 # (this will not be used if attitude control is true)
-hover_throttle: 0.71 # this need to be very accurate for a good control (most important)
+hover_thrust: 0.71 # this need to be very accurate for a good control (most important)
 
 # display message
-verbose: false
+verbose: true

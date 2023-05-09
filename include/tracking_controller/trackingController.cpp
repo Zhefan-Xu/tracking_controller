@@ -126,12 +126,12 @@ namespace controller{
 		}
 
 		// Estimated Maximum acceleration
-		if (not this->nh_.getParam("controller/hover_throttle", this->hoverThrottle_)){
-			this->hoverThrottle_ = 0.3;
-			cout << "[trackingController]: No hover throttle param. Use default: 0.3." << endl;
+		if (not this->nh_.getParam("controller/hover_thrust", this->hoverThrust_)){
+			this->hoverThrust_ = 0.3;
+			cout << "[trackingController]: No hover thrust param. Use default: 0.3." << endl;
 		}
 		else{
-			cout << "[trackingController]: Hover throttle is set to: " << this->hoverThrottle_  << endl;
+			cout << "[trackingController]: Hover thrust is set to: " << this->hoverThrust_  << endl;
 		}
 
 		// Display message
@@ -168,12 +168,18 @@ namespace controller{
 	void trackingController::registerCallback(){
 		// odom subscriber
 		this->odomSub_ = this->nh_.subscribe("/mavros/local_position/odom", 1, &trackingController::odomCB, this);
+
+		// imu subscriber
+		this->imuSub_ = this->nh_.subscribe("/mavros/imu/data", 1, &trackingController::imuCB, this);
 	
 		// target setpoint subscriber
 		this->targetSub_ = this->nh_.subscribe("/autonomous_flight/target_state", 1, &trackingController::targetCB, this);
 	
 		// controller publisher timer
 		this->cmdTimer_ = this->nh_.createTimer(ros::Duration(0.01), &trackingController::cmdCB, this);
+
+		// auto thrust esimator timer
+		this->thrustEstimatorTimer_ = this->nh_.createTimer(ros::Duration(0.01), &trackingController::thrustEstimateCB, this);
 
 		// visualization timer
 		this->visTimer_ = this->nh_.createTimer(ros::Duration(0.033), &trackingController::visCB, this);
@@ -183,6 +189,11 @@ namespace controller{
 	void trackingController::odomCB(const nav_msgs::OdometryConstPtr& odom){
 		this->odom_ = *odom;
 		this->odomReceived_ = true;
+	}
+
+	void trackingController::imuCB(const sensor_msgs::ImuConstPtr& imu){
+		this->imuData_ = *imu;
+		this->imuReceived_ = true;
 	}
 
 	void trackingController::targetCB(const tracking_controller::TargetConstPtr& target){
@@ -217,6 +228,14 @@ namespace controller{
 		this->targetReceived_ = false;
 	}
 
+	void trackingController::thrustEstimateCB(const ros::TimerEvent&){
+		// run estimator when the command thrust is available
+		// sync IMU and command thrust (?)
+
+		// construct kalman filter matrix
+
+		// update hoverThrust  
+	}
 
 	void trackingController::visCB(const ros::TimerEvent&){
 		this->publishPoseVis();
@@ -248,7 +267,8 @@ namespace controller{
 		cmdMsg.orientation.y = cmd(2);
 		cmdMsg.orientation.z = cmd(3);
 		double thrust = accRef.norm();
-		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust/(9.8 * 1.0/this->hoverThrottle_))); // percent		
+		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust/(9.8 * 1.0/this->hoverThrust_))); // percent
+		this->cmdThrust_ = thrustPercent;		
 		cmdMsg.thrust = thrustPercent;
 		cmdMsg.type_mask = cmdMsg.IGNORE_ROLL_RATE + cmdMsg.IGNORE_PITCH_RATE + cmdMsg.IGNORE_YAW_RATE;		
 		this->cmdPub_.publish(cmdMsg);
@@ -345,10 +365,10 @@ namespace controller{
 
 
 
-	// 	cout << "Position Error: " << positionError(0) << " " << positionError(1) << " " << positionError(2) << endl;
+		// cout << "Position Error: " << positionError(0) << " " << positionError(1) << " " << positionError(2) << endl;
 	// 	cout << "Target Velocity: " << targetVel(0) << " " << targetVel(1) << " " << targetVel(2) << endl;
-	// 	cout << "Current Velocity: " << currVel(0) << " " << currVel(1) << " " << currVel(2) << endl; 
-	// 	cout << "Velocity Error: " << velocityError(0) << " " << velocityError(1) << " " << velocityError(2) << endl;
+		// cout << "Current Velocity: " << currVel(0) << " " << currVel(1) << " " << currVel(2) << endl; 
+		// cout << "Velocity Error: " << velocityError(0) << " " << velocityError(1) << " " << velocityError(2) << endl;
 	// 	cout << "Feedback acceleration: " << accFeedback(0) << " " << accFeedback(1) << " " << accFeedback(2) << endl;
 	// 	cout << "Desired Acceleration: " << accRef(0) << " " << accRef(1) << " " << accRef(2) << endl;
 	}
@@ -368,7 +388,8 @@ namespace controller{
 		// Eigen::Vector3d zDirection = currAttitudeRot.col(2); // body z axis 
 		// double thrust = accRef.dot(zDirection); // thrust in acceleration
 		double thrust = accRef.norm();
-		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust/(9.8 * 1.0/this->hoverThrottle_))); // percent
+		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust/(9.8 * 1.0/this->hoverThrust_))); // percent
+		this->cmdThrust_ = thrustPercent;
 		cmd(3) = thrustPercent;
 		
 		// cout << "body rate: " << cmd(0) << " " << cmd(1) << " " << cmd(2) << endl;
