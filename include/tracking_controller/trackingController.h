@@ -45,6 +45,7 @@ namespace controller{
 			// controller data
 			bool odomReceived_ = false;
 			bool imuReceived_ = false;
+			bool thrustReady_ = false;
 			bool firstTargetReceived_ = false;
 			bool targetReceived_ = false;
 			bool firstTime_ = true;
@@ -58,6 +59,15 @@ namespace controller{
 			Eigen::Vector3d deltaPosError_, prevPosError_; // delta of position error
 			Eigen::Vector3d deltaVelError_, prevVelError_; // delta of velocity error
 			double cmdThrust_;
+			ros::Time cmdThrustTime_;
+
+			// kalman filter
+			bool kfFirstTime_ = true;
+			ros::Time kfLastTime_;  
+			double stateVar_ = 0.05;
+			double processNoiseVar_ = 0.09;
+			double measureNoiseVar_ = 0.02;
+
 
 			// visualization
 			geometry_msgs::PoseStamped poseVis_;

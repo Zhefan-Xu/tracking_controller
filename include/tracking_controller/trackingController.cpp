@@ -229,12 +229,57 @@ namespace controller{
 	}
 
 	void trackingController::thrustEstimateCB(const ros::TimerEvent&){
+		if (not this->thrustReady_ or not this->imuReceived_){return;}
+		if (this->kfFirstTime_){
+			this->kfFirstTime_ = false;
+			this->kfLastTime_ = ros::Time::now();
+			return;
+		}
+		ros::Time kfCurrTime = ros::Time::now();
+		double dt = (kfCurrTime - this->kfLastTime_).toSec();
+		this->kfLastTime_ = kfCurrTime;
+
+
 		// run estimator when the command thrust is available
 		// sync IMU and command thrust (?)
+		double hoverThrust = this->hoverThrust_;
+		double cmdThrust = this->cmdThrust_;
+		Eigen::Vector3d currAccBody (this->imuData_.linear_acceleration.x, this->imuData_.linear_acceleration.y, this->imuData_.linear_acceleration.z);
+		Eigen::Vector4d currQuat (this->odom_.pose.pose.orientation.w, this->odom_.pose.pose.orientation.x, this->odom_.pose.pose.orientation.y, this->odom_.pose.pose.orientation.z);
+		Eigen::Matrix3d currRot = controller::quat2RotMatrix(currQuat);
+		Eigen::Vector3d currAcc = currRot * currAccBody;	
+		double timeDiff = (this->imuData_.header.stamp - this->cmdThrustTime_).toSec();
 
-		// construct kalman filter matrix
 
-		// update hoverThrust  
+		// states: Hover thrust
+		double states = hoverThrust;
+		double A = 1;
+		double H = -(cmdThrust * 9.8) * (1.0/pow(hoverThrust, 2));
+		double z = (currAcc(2) - 9.8); // acceleratoin
+
+		// Kalman filter predict (predict states and propagate var)
+		states = A * states;
+		this->stateVar_ += this->processNoiseVar_;
+
+		// Kalman filter correction
+		double Ivar = H * this->stateVar_ * H + this->measureNoiseVar_;
+		double K = this->stateVar_ * H/Ivar;
+		double I = z - (cmdThrust/hoverThrust - 1.0) * 9.8;
+
+		// update hoverThrust 
+		double newHoverThrust = hoverThrust + K * I;
+		this->stateVar_ = (1.0 - K * H) * this->stateVar_;
+
+		if (this->stateVar_ < 1e-4){
+			this->hoverThrust_ = newHoverThrust;
+		}
+		cout << "current commnd thrust is: " << cmdThrust << endl;
+		cout << "current z: " << z << endl;
+		cout << "world acc: " << currAcc.transpose() << endl;
+		cout << "[trackingController]: Estimated thrust is: " << newHoverThrust << endl; 
+		cout << "variance: " << this->stateVar_ << endl;
+		cout << "hover thrust from acc: " << (9.8 * cmdThrust)/currAcc(2) << endl;
+		cout << "Current hover thrust is set to: " << this->hoverThrust_ << endl;
 	}
 
 	void trackingController::visCB(const ros::TimerEvent&){
@@ -268,7 +313,9 @@ namespace controller{
 		cmdMsg.orientation.z = cmd(3);
 		double thrust = accRef.norm();
 		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust/(9.8 * 1.0/this->hoverThrust_))); // percent
-		this->cmdThrust_ = thrustPercent;		
+		this->cmdThrust_ = thrustPercent;
+		this->cmdThrustTime_ = ros::Time::now();
+		this->thrustReady_ = true;		
 		cmdMsg.thrust = thrustPercent;
 		cmdMsg.type_mask = cmdMsg.IGNORE_ROLL_RATE + cmdMsg.IGNORE_PITCH_RATE + cmdMsg.IGNORE_YAW_RATE;		
 		this->cmdPub_.publish(cmdMsg);
@@ -390,6 +437,8 @@ namespace controller{
 		double thrust = accRef.norm();
 		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust/(9.8 * 1.0/this->hoverThrust_))); // percent
 		this->cmdThrust_ = thrustPercent;
+		this->cmdThrustTime_ = ros::Time::now();
+		this->thrustReady_ = true;	
 		cmd(3) = thrustPercent;
 		
 		// cout << "body rate: " << cmd(0) << " " << cmd(1) << " " << cmd(2) << endl;
