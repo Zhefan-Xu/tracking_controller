@@ -10,7 +10,7 @@ attitude_control: false
 
 # Position PID
 position_p: [1.2, 1.2, 1.0]
-position_i: [0.0, 0.0, 0.0]
+position_i: [0.0, 0.0, 0.1]
 position_d: [0.0, 0.0, 0.0]
 
 # Velocity
@@ -23,4 +23,4 @@ attitude_control_tau: 0.3 # (this will not be used if attitude control is true)
 hover_thrust: 0.68 # this need to be very accurate for a good control (most important)
 
 # display message
-verbose: true
+verbose: false

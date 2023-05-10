@@ -63,11 +63,11 @@ namespace controller{
 
 			// kalman filter
 			bool kfFirstTime_ = true;
-			ros::Time kfLastTime_;  
-			double stateVar_ = 0.05;
-			double processNoiseVar_ = 0.09;
+			ros::Time kfStartTime_;  
+			double stateVar_ = 0.01;
+			double processNoiseVar_ = 0.01;
 			double measureNoiseVar_ = 0.02;
-
+			std::deque<double> prevEstimateThrusts_;
 
 			// visualization
 			geometry_msgs::PoseStamped poseVis_;

@@ -232,13 +232,9 @@ namespace controller{
 		if (not this->thrustReady_ or not this->imuReceived_){return;}
 		if (this->kfFirstTime_){
 			this->kfFirstTime_ = false;
-			this->kfLastTime_ = ros::Time::now();
+			this->kfStartTime_ = ros::Time::now();
 			return;
 		}
-		ros::Time kfCurrTime = ros::Time::now();
-		double dt = (kfCurrTime - this->kfLastTime_).toSec();
-		this->kfLastTime_ = kfCurrTime;
-
 
 		// run estimator when the command thrust is available
 		// sync IMU and command thrust (?)
@@ -248,8 +244,6 @@ namespace controller{
 		Eigen::Vector4d currQuat (this->odom_.pose.pose.orientation.w, this->odom_.pose.pose.orientation.x, this->odom_.pose.pose.orientation.y, this->odom_.pose.pose.orientation.z);
 		Eigen::Matrix3d currRot = controller::quat2RotMatrix(currQuat);
 		Eigen::Vector3d currAcc = currRot * currAccBody;	
-		double timeDiff = (this->imuData_.header.stamp - this->cmdThrustTime_).toSec();
-
 
 		// states: Hover thrust
 		double states = hoverThrust;
@@ -262,24 +256,69 @@ namespace controller{
 		this->stateVar_ += this->processNoiseVar_;
 
 		// Kalman filter correction
-		double Ivar = H * this->stateVar_ * H + this->measureNoiseVar_;
+		double Ivar = std::max(H * this->stateVar_ * H + this->measureNoiseVar_, this->measureNoiseVar_);
 		double K = this->stateVar_ * H/Ivar;
 		double I = z - (cmdThrust/hoverThrust - 1.0) * 9.8;
+
+		// double residual;
+		// residual = I;
+
+		// // whether this iteration passes the test
+		// double ItestRatio = (I*I/(this->innovGateSize_ * Ivar));
+		// if (ItestRatio < 1.0){
+		// 	hoverThrust = hoverThrust + K * I;
+		// 	this->stateVar_ = (1.0 - K * H) * this->stateVar_;	
+		// 	residual = z - (cmdThrust/hoverThrust - 1.0) * 9.8; 		
+		// 	this->hoverThrust_ = hoverThrust;
+		// }
+
 
 		// update hoverThrust 
 		double newHoverThrust = hoverThrust + K * I;
 		this->stateVar_ = (1.0 - K * H) * this->stateVar_;
 
-		if (this->stateVar_ < 1e-4){
-			this->hoverThrust_ = newHoverThrust;
+		if (this->verbose_){
+			cout << "[trackingController]: Estimation variance: " << this->stateVar_ << endl;
+			// cout << "test ratio: " << I*I/Ivar << endl;
+			// cout << "new estimate is: " << newHoverThrust << endl;
 		}
-		cout << "current commnd thrust is: " << cmdThrust << endl;
-		cout << "current z: " << z << endl;
-		cout << "world acc: " << currAcc.transpose() << endl;
-		cout << "[trackingController]: Estimated thrust is: " << newHoverThrust << endl; 
-		cout << "variance: " << this->stateVar_ << endl;
-		cout << "hover thrust from acc: " << (9.8 * cmdThrust)/currAcc(2) << endl;
-		cout << "Current hover thrust is set to: " << this->hoverThrust_ << endl;
+
+		double prevMinThrust = 0.0;
+		double prevMaxThrust = 1.0;
+		if (this->prevEstimateThrusts_.size() < 10){
+			this->prevEstimateThrusts_.push_back(newHoverThrust);
+		}
+		else{
+			this->prevEstimateThrusts_.pop_front();
+			this->prevEstimateThrusts_.push_back(newHoverThrust);
+			std::deque<double>::iterator itMin = std::min_element(this->prevEstimateThrusts_.begin(), this->prevEstimateThrusts_.end());
+			std::deque<double>::iterator itMax = std::max_element(this->prevEstimateThrusts_.begin(), this->prevEstimateThrusts_.end());
+			prevMinThrust = *itMin;
+			prevMaxThrust = *itMax;
+		}
+
+
+		// if the state variance is smaller enough, update the hover thrust
+		if (std::abs(prevMinThrust - prevMaxThrust) < 0.005){
+			if (newHoverThrust > 0 and newHoverThrust < 1.0){
+				this->hoverThrust_ = newHoverThrust;
+				ros::Time currTime = ros::Time::now();
+				double estimatedTime = (currTime - this->kfStartTime_).toSec();
+				if (this->verbose_){
+					cout << "[trackingController]: New estimate at " << estimatedTime  << "s, and Estimated thrust is: " << newHoverThrust << ". Variance: " << this->stateVar_ << endl; 
+				}
+			}
+			else{
+				cout << "[trackingController]: !!!!!!!!!!AUTO TRHUST ESTIMATION FAILS!!!!!!!!!" << endl;
+			}
+		}
+		// cout << "current commnd thrust is: " << cmdThrust << endl;
+		// cout << "current z: " << z << endl;
+		// cout << "world acc: " << currAcc.transpose() << endl;
+		// cout << "[trackingController]: Estimated thrust is: " << newHoverThrust << endl; 
+		// cout << "variance: " << this->stateVar_ << endl;
+		// cout << "hover thrust from acc: " << (9.8 * cmdThrust)/currAcc(2) << endl;
+		// cout << "Current hover thrust is set to: " << this->hoverThrust_ << endl;
 	}
 
 	void trackingController::visCB(const ros::TimerEvent&){
@@ -443,7 +482,7 @@ namespace controller{
 		
 		// cout << "body rate: " << cmd(0) << " " << cmd(1) << " " << cmd(2) << endl;
 		if (this->verbose_){
-			cout << "[Tracking Controller]: Thrust percent: " << thrustPercent << endl;
+			cout << "[trackingController]: Thrust percent: " << thrustPercent << endl;
 		}
 	}
 
