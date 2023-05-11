@@ -6,7 +6,9 @@
 #
 
 # body
-attitude_control: false
+body_rate_control: false # all parameters
+attitude_control: false # PID and hover thrust
+acceleration_control: true # only PID matters
 
 # Position PID
 position_p: [1.2, 1.2, 1.0]

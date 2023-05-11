@@ -15,14 +15,32 @@ namespace controller{
 
 
 	void trackingController::initParam(){
-		// attitude control/body rate control
-		if (not this->nh_.getParam("controller/attitude_control", this->attitudeControl_)){
-			this->attitudeControl_ = true;
-			cout << "[trackingController]: No attitude control param. Use default: attitude control." << endl;
+		// body rate control
+		if (not this->nh_.getParam("controller/body_rate_control", this->bodyRateControl_)){
+			this->bodyRateControl_ = true;
+			cout << "[trackingController]: No body rate control param. Use default: acceleration control." << endl;
 		}
 		else{
-			cout << "[trackingController]: Attitude control(1)/Body rate control(0) is set to: " << this->attitudeControl_  << endl;
+			cout << "[trackingController]: Body rate control is set to: " << this->bodyRateControl_  << endl;
+		}	
+
+		// attitude control
+		if (not this->nh_.getParam("controller/attitude_control", this->attitudeControl_)){
+			this->attitudeControl_ = true;
+			cout << "[trackingController]: No attitude control param. Use default: acceleration control." << endl;
+		}
+		else{
+			cout << "[trackingController]: Attitude control is set to: " << this->attitudeControl_  << endl;
 		}		
+
+		// acceleration control
+		if (not this->nh_.getParam("controller/acceleration_control", this->accControl_)){
+			this->accControl_ = true;
+			cout << "[trackingController]: No acceleration control param. Use default: acceleration control." << endl;
+		}
+		else{
+			cout << "[trackingController]: Acceleration control is set to: " << this->accControl_  << endl;
+		}			
 
 
 		// P for Position
@@ -146,7 +164,10 @@ namespace controller{
 
 	void trackingController::registerPub(){
 		// command publisher
-		this->cmdPub_ = this->nh_.advertise<mavros_msgs::AttitudeTarget>("/mavros/setpoint_raw/attitude", 1);
+		this->cmdPub_ = this->nh_.advertise<mavros_msgs::AttitudeTarget>("/mavros/setpoint_raw/attitude", 100);
+
+		// acc comman publisher
+		this->accCmdPub_ = this->nh_.advertise<mavros_msgs::PositionTarget>("/mavros/setpoint_raw/local", 100);
 	
 		// current pose visualization publisher
 		this->poseVisPub_ = this->nh_.advertise<geometry_msgs::PoseStamped>("/tracking_controller/robot_pose", 1);
@@ -178,9 +199,10 @@ namespace controller{
 		// controller publisher timer
 		this->cmdTimer_ = this->nh_.createTimer(ros::Duration(0.01), &trackingController::cmdCB, this);
 
-		// auto thrust esimator timer
-		this->thrustEstimatorTimer_ = this->nh_.createTimer(ros::Duration(0.01), &trackingController::thrustEstimateCB, this);
-
+		if (not this->accControl_){
+			// auto thrust esimator timer
+			this->thrustEstimatorTimer_ = this->nh_.createTimer(ros::Duration(0.01), &trackingController::thrustEstimateCB, this);
+		}
 		// visualization timer
 		this->visTimer_ = this->nh_.createTimer(ros::Duration(0.033), &trackingController::visCB, this);
 	}
@@ -212,19 +234,26 @@ namespace controller{
 		this->computeAttitudeAndAccRef(attitudeRefQuat, accRef);
 
 		
-		if (not this->attitudeControl_){
+		if (this->bodyRateControl_){
 			// 2. Compute the body rate from the reference attitude
 			this->computeBodyRate(attitudeRefQuat, accRef, cmd);
 
 			// 3. publish body rate as control input
 			this->publishCommand(cmd);
 		}
-		else{
+
+
+		if (this->attitudeControl_){
 			// direct attitude control
 			cmd = attitudeRefQuat;
 			this->publishCommand(cmd, accRef);
-
 		}
+
+		if (this->accControl_){
+			this->publishCommand(accRef);
+		}
+
+
 		this->targetReceived_ = false;
 	}
 
@@ -358,6 +387,20 @@ namespace controller{
 		cmdMsg.thrust = thrustPercent;
 		cmdMsg.type_mask = cmdMsg.IGNORE_ROLL_RATE + cmdMsg.IGNORE_PITCH_RATE + cmdMsg.IGNORE_YAW_RATE;		
 		this->cmdPub_.publish(cmdMsg);
+	}
+
+	void trackingController::publishCommand(const Eigen::Vector3d& accRef){
+		mavros_msgs::PositionTarget cmdMsg;
+		cmdMsg.coordinate_frame = cmdMsg.FRAME_LOCAL_NED;
+		cmdMsg.header.stamp = ros::Time::now();
+		cmdMsg.header.frame_id = "map";
+		cmdMsg.acceleration_or_force.x = accRef(0);
+		cmdMsg.acceleration_or_force.y = accRef(1);
+		cmdMsg.acceleration_or_force.z = accRef(2) - 9.8;
+		cmdMsg.yaw = this->target_.yaw;
+		cmdMsg.type_mask = cmdMsg.IGNORE_PX + cmdMsg.IGNORE_PY + cmdMsg.IGNORE_PZ + cmdMsg.IGNORE_VX + cmdMsg.IGNORE_VY + cmdMsg.IGNORE_VZ + cmdMsg.IGNORE_YAW_RATE;
+		// cout << "acc: " << accRef(0) << " " << accRef(1) << " " << accRef(2) - 9.8 << " " << endl;
+ 		this->accCmdPub_.publish(cmdMsg); 		
 	}
 
 

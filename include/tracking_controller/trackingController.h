@@ -13,6 +13,7 @@
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
 #include <mavros_msgs/AttitudeTarget.h>
+#include <mavros_msgs/PositionTarget.h>
 #include <tracking_controller/Target.h>
 #include <tracking_controller/utils.h>
 
@@ -25,6 +26,7 @@ namespace controller{
 			ros::Subscriber imuSub_; // IMU data subscriber
 			ros::Subscriber targetSub_; // subscriber for the tracking target states
 			ros::Publisher cmdPub_; // command publisher
+			ros::Publisher accCmdPub_; // acceleration command publisher
 			ros::Publisher poseVisPub_; // current pose publisher
 			ros::Publisher targetVisPub_; // target pose publisher
 			ros::Publisher histTrajVisPub_; // history trajectory publisher
@@ -35,7 +37,9 @@ namespace controller{
 			ros::Timer visTimer_; // visualization timer
 
 			// parameters
+			bool bodyRateControl_ = false;
 			bool attitudeControl_ = false;
+			bool accControl_ = true;
 			Eigen::Vector3d pPos_, iPos_, dPos_;
 			Eigen::Vector3d pVel_, iVel_, dVel_;
 			double attitudeControlTau_;
@@ -95,6 +99,7 @@ namespace controller{
 
 			void publishCommand(const Eigen::Vector4d& cmd);
 			void publishCommand(const Eigen::Vector4d& cmd, const Eigen::Vector3d& accRef);
+			void publishCommand(const Eigen::Vector3d& accRef);
 			void computeAttitudeAndAccRef(Eigen::Vector4d& attitudeRefQuat, Eigen::Vector3d& accRef);
 			void computeBodyRate(const Eigen::Vector4d& attitudeRefQuat, const Eigen::Vector3d& accRef, Eigen::Vector4d& cmd);
 
