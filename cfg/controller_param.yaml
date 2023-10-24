@@ -11,12 +11,12 @@ attitude_control: false # PID and hover thrust
 acceleration_control: true # only PID matters
 
 # Position PID
-position_p: [1.2, 1.2, 1.0]
+position_p: [2.0, 2.0, 1.0]
 position_i: [0.0, 0.0, 0.1]
 position_d: [0.0, 0.0, 0.0]
 
 # Velocity
-velocity_p: [1.0, 1.0, 1.0]
+velocity_p: [0.5, 0.5, 0.5]
 velocity_i: [0.0, 0.0, 0.0]
 velocity_d: [0.0, 0.0, 0.0]
 
