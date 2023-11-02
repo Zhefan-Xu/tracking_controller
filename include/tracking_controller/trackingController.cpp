@@ -13,7 +13,6 @@ namespace controller{
 		this->registerCallback();
 	}
 
-
 	void trackingController::initParam(){
 		// body rate control
 		if (not this->nh_.getParam("controller/body_rate_control", this->bodyRateControl_)){
@@ -168,7 +167,7 @@ namespace controller{
 
 		// acc comman publisher
 		this->accCmdPub_ = this->nh_.advertise<mavros_msgs::PositionTarget>("/mavros/setpoint_raw/local", 100);
-	
+		
 		// current pose visualization publisher
 		this->poseVisPub_ = this->nh_.advertise<geometry_msgs::PoseStamped>("/tracking_controller/robot_pose", 1);
 
@@ -400,7 +399,7 @@ namespace controller{
 		cmdMsg.yaw = this->target_.yaw;
 		cmdMsg.type_mask = cmdMsg.IGNORE_PX + cmdMsg.IGNORE_PY + cmdMsg.IGNORE_PZ + cmdMsg.IGNORE_VX + cmdMsg.IGNORE_VY + cmdMsg.IGNORE_VZ + cmdMsg.IGNORE_YAW_RATE;
 		// cout << "acc: " << accRef(0) << " " << accRef(1) << " " << accRef(2) - 9.8 << " " << endl;
- 		this->accCmdPub_.publish(cmdMsg); 		
+ 		this->accCmdPub_.publish(cmdMsg);
 	}
 
 
@@ -479,7 +478,8 @@ namespace controller{
 
 
 		// Convert the reference acceleration into the reference attitude
-		double yaw = this->target_.yaw;  // todo: the original implementation uses the current yaw or velocity yaw
+		// double yaw = this->target_.yaw;  // todo: the original implementation uses the current yaw or velocity yaw
+		double yaw = controller::rpy_from_quaternion(this->odom_.pose.pose.orientation); 
 		Eigen::Vector3d direction (cos(yaw), sin(yaw), 0.0);
 		Eigen::Vector3d zDirection = accRef/accRef.norm();
 		Eigen::Vector3d yDirection = zDirection.cross(direction)/(zDirection.cross(direction)).norm();
