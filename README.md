@@ -35,6 +35,11 @@ The implemented controller follows the structure shown below:
 
 <img width="1410" alt="controller_diagram" src="https://github.com/Zhefan-Xu/tracking_controller/assets/55560905/b3a68c70-fb1a-4ec2-be29-3cb769670490">
 
+The related paper can be found on:
+
+**Dario Brescianini, Markus Hehn, Raffaello D'Andrea, Nonlinear Quadrocopter Attitude Control, ETH Zurich, 2013.**[\[paper\]](https://nrotella.github.io/assets/pdf/px4_attitude_control.pdf)  
+
+
 ## IV. Parameters
 The controller parameters can be edited and modified in ```tracking_controller/cfg/controller_param.yaml```. 
 
