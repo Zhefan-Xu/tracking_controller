@@ -33,7 +33,7 @@ https://github.com/Zhefan-Xu/tracking_controller/assets/55560905/5a83ede2-a8a2-4
 ## III. Controller Structure
 The implemented controller follows the structure shown below:
 
-![controller_diagram](https://github.com/Zhefan-Xu/tracking_controller/assets/55560905/b75d6232-5605-453a-a941-c642a3778582)
+<img width="1410" alt="controller_diagram" src="https://github.com/Zhefan-Xu/tracking_controller/assets/55560905/b3a68c70-fb1a-4ec2-be29-3cb769670490">
 
 ## IV. Parameters
 The controller parameters can be edited and modified in ```tracking_controller/cfg/controller_param.yaml```. 
