@@ -2,7 +2,17 @@
 tune performance with difference velocity
 
 ## I. Installation Guide
+This repo has been tested on ROS Melodic with Ubuntu 18.04 and ROS Noetic with Ubuntu 20.04 and it depends on [mavros](http://wiki.ros.org/mavros) ROS package. 
+```
+# install dependency
+sudo apt install ros-[melodic/noetic]-mavros* # mavros
 
+cd ~/catkin_ws/src
+git clone https://github.com/Zhefan-Xu/tracking_controller.git
+
+cd ~/catkin_ws
+catkin_make
+```
 
 ## II. Run Controller DEMO
 For tracking a circular trajectory, please run the following commands. Note that the tracking circle function is a part of [autonomous_flight](https://github.com/Zhefan-Xu/autonomous_flight) package and please install it before running. Also, for simulator, you can either use the original PX4 simulator or use our PX4-based [uav_simulator](https://github.com/Zhefan-Xu/uav_simulator) package:
