@@ -1,5 +1,8 @@
 # tracking_controller
-tune performance with difference velocity
+This pakcage implements a PID-based trajectory tracking controller for PX4-based autonomous robots.
+
+**Author**: [Zhefan Xu](https://zhefanxu.com/), Computational Engineering & Robotics Lab (CERLAB) at Carnegie Mellon University (CMU).
+
 
 ## I. Installation Guide
 This repo has been tested on ROS Melodic with Ubuntu 18.04 and ROS Noetic with Ubuntu 20.04 and it depends on [mavros](http://wiki.ros.org/mavros) ROS package. Use the following commands for installtion:
