@@ -1,4 +1,4 @@
-# tracking_controller
+# Trajectory Tracking Controller for Autonomous Robots
 This pakcage implements a PID-based trajectory tracking controller for PX4-based autonomous robots.
 
 **Author**: [Zhefan Xu](https://zhefanxu.com/), Computational Engineering & Robotics Lab (CERLAB) at Carnegie Mellon University (CMU).
