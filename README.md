@@ -34,3 +34,23 @@ https://github.com/Zhefan-Xu/tracking_controller/assets/55560905/5a83ede2-a8a2-4
 The implemented controller follows the structure shown below:
 
 ![controller_diagram](https://github.com/Zhefan-Xu/tracking_controller/assets/55560905/b75d6232-5605-453a-a941-c642a3778582)
+
+## IV. Parameters
+The controller parameters can be edited and modified in ```tracking_controller/cfg/controller_param.yaml```. 
+
+## V. ROS Topics
+Here lists some important ROS topics related to the controller:
+  - Subscribing Topics:
+    - ```/mavros/local_position/odom```: The robot odometry.
+    - ```/mavros/imu/data```: The robot IMU data.
+    - ```/autonomous_flight/target_state```: The desired target states.
+
+  - Publishing Topics:
+    - ```/mavros/setpoint_raw/attitude```: The command to PX4 flight controller.
+    - ```/mavros/setpoint_raw/local```: The command to PX4 flight controller.
+    - ```/tracking_controller/robot_pose```: The robot current pose.
+    - ```/tracking_controller/trajectory_history```: The robot historic trajectory.
+    - ```/tracking_controller/target_pose```: The target current pose.
+    - ```/tracking_controller/target_trajectory_history```: The target historic trajectory.
+    - ```/tracking_controller/vel_and_acc_info```: The robot state information.
+    
