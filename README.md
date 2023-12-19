@@ -46,8 +46,8 @@ Here lists some important ROS topics related to the controller:
     - ```/autonomous_flight/target_state```: The desired target states.
 
   - Publishing Topics:
-    - ```/mavros/setpoint_raw/attitude```: The command to PX4 flight controller.
-    - ```/mavros/setpoint_raw/local```: The command to PX4 flight controller.
+    - ```/mavros/setpoint_raw/attitude```: The command to the PX4 flight controller.
+    - ```/mavros/setpoint_raw/local```: The command to the PX4 flight controller.
     - ```/tracking_controller/robot_pose```: The robot current pose.
     - ```/tracking_controller/trajectory_history```: The robot historic trajectory.
     - ```/tracking_controller/target_pose```: The target current pose.
