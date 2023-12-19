@@ -2,7 +2,7 @@
 tune performance with difference velocity
 
 ## I. Installation Guide
-This repo has been tested on ROS Melodic with Ubuntu 18.04 and ROS Noetic with Ubuntu 20.04 and it depends on [mavros](http://wiki.ros.org/mavros) ROS package. 
+This repo has been tested on ROS Melodic with Ubuntu 18.04 and ROS Noetic with Ubuntu 20.04 and it depends on [mavros](http://wiki.ros.org/mavros) ROS package. Use the following commands for installtion:
 ```
 # install dependency
 sudo apt install ros-[melodic/noetic]-mavros* # mavros
