@@ -30,3 +30,7 @@ The example results of running the above command can be visulized as below:
 
 https://github.com/Zhefan-Xu/tracking_controller/assets/55560905/5a83ede2-a8a2-4c7a-a5f4-3dd3304e9ad0
 
+## III. Controller Structure
+The implemented controller follows the structure shown below:
+
+![controller_diagram](https://github.com/Zhefan-Xu/tracking_controller/assets/55560905/b75d6232-5605-453a-a941-c642a3778582)
