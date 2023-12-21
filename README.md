@@ -37,7 +37,7 @@ The implemented controller follows the structure shown below:
 
 The related paper can be found on:
 
-**Dario Brescianini, Markus Hehn, Raffaello D'Andrea, Nonlinear Quadrocopter Attitude Control, ETH Zurich, 2013.**[\[paper\]](https://nrotella.github.io/assets/pdf/px4_attitude_control.pdf)  
+**Dario Brescianini, Markus Hehn, Raffaello D'Andrea, Nonlinear Quadrocopter Attitude Control, ETH Zurich, 2013.** [\[paper\]](https://nrotella.github.io/assets/pdf/px4_attitude_control.pdf)  
 
 
 ## IV. Parameters
