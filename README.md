@@ -3,6 +3,9 @@ This pakcage implements a PID-based trajectory tracking controller for PX4-based
 
 **Author**: [Zhefan Xu](https://zhefanxu.com/), Computational Engineering & Robotics Lab (CERLAB) at Carnegie Mellon University (CMU).
 
+If you find this work helpful, kindly show your support by giving us a free ⭐️. Your recognition is truly valued.
+
+This repo can be used as a standalone package and also comes as a module of our [autonomy framework](https://github.com/Zhefan-Xu/CERLAB-UAV-Autonomy).
 
 ## I. Installation Guide
 This repo has been tested on ROS Melodic with Ubuntu 18.04 and ROS Noetic with Ubuntu 20.04 and it depends on [mavros](http://wiki.ros.org/mavros) ROS package. Use the following commands for installtion:
