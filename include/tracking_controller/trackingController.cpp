@@ -470,7 +470,7 @@ namespace controller{
 		}
 		else{
 			this->deltaPosError_ = (positionError - this->prevPosError_)/this->deltaTime_; this->prevPosError_ = positionError;
-			this->deltaVelError_ = (velocityError - this->prevPosError_)/this->deltaTime_; this->prevVelError_ = velocityError;
+			this->deltaVelError_ = (velocityError - this->prevVelError_)/this->deltaTime_; this->prevVelError_ = velocityError;
 		}
 		
 		// mask out the velocity input if needed
